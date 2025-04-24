@@ -5,10 +5,12 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
 from django.utils import timezone
+from django.urls import reverse
 
 from .forms import ClientRegistrationForm, VerifyAccountForm, LoginForm, EmployeeForm
 from .models import CustomUser, ClientProfile, EmployeeProfile
 from .decorators import employee_required, client_required
+from core.email_utils import send_verification_email_html, send_employee_welcome_email_html
 
 
 def client_register_view(request):
@@ -33,7 +35,7 @@ def client_register_view(request):
                     is_employee=False,
                     is_verified=False
                 )
-                user.generate_verification_code()
+                verification_code = user.generate_verification_code()
 
                 ClientProfile.objects.create(
                     user=user,
@@ -45,7 +47,10 @@ def client_register_view(request):
                     gender=form.cleaned_data.get('gender'),
                 )
 
-                user.send_verification_email()
+                # --- Send Verification Email ---
+                send_verification_email_html(verification_code, user.email, user.full_name)
+                # --- End Send Verification Email ---
+
                 login(request, user)
                 messages.info(request, "Registration successful! Please check your email for a verification code.")
                 return redirect('verify_account')
@@ -125,11 +130,12 @@ def manage_employees_view(request):
         form = EmployeeForm(request.POST)
         if form.is_valid():
             try:
+                password = form.cleaned_data['password'] # Get password from form
                 user = CustomUser.objects.create_employee(
                     email=form.cleaned_data['email'],
                     first_name=form.cleaned_data['first_name'],
                     last_name=form.cleaned_data['last_name'],
-                    password=form.cleaned_data['password'] # Pass the password from form
+                    password=password
                 )
                 EmployeeProfile.objects.create(
                     user=user,
@@ -137,8 +143,13 @@ def manage_employees_view(request):
                     department=form.cleaned_data.get('department'),
                     gender=form.cleaned_data.get('gender')
                 )
-                messages.success(request, "Employee added successfully.")
-                # Consider sending login details via email here
+
+                # --- Send Welcome Email ---
+                login_url = request.build_absolute_uri(reverse('user_login'))
+                send_employee_welcome_email_html(user.email, user.full_name, password, login_url)
+                # --- End Send Welcome Email ---
+
+                messages.success(request, "Employee added successfully and welcome email sent.")
                 return redirect('manage_employees')
             except Exception as e:
                 messages.error(request, f"Failed to add employee: {e}")
@@ -147,9 +158,10 @@ def manage_employees_view(request):
     else:
         form = EmployeeForm()
 
-    employees = EmployeeProfile.objects.select_related('user').all()
+    employees = EmployeeProfile.objects.select_related('user').all().order_by('user__last_name', 'user__first_name')
     context = {
         'form': form,
         'employees': employees,
     }
     return render(request, 'users/manage_employees.html', context)
+

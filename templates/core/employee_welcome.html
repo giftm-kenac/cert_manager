@@ -1,0 +1,47 @@
+{# templates/emails/.html #}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome Employee</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { width: 100%; max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .header { background-color: #003366; color: #ffffff; padding: 20px; text-align: center; font-size: 24px; font-weight: bold; }
+        .content { padding: 30px; text-align: left; }
+        .credentials { background-color: #e9ecef; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .credentials p { margin: 5px 0; }
+        .message { font-size: 16px; color: #333333; margin-bottom: 25px; line-height: 1.5; }
+        .button { display: inline-block; background-color: #003366; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 15px; }
+        .footer { background-color: #f8f9fa; border-top: 1px solid #e9ecef; padding: 15px; text-align: center; color: #6c757d; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            Welcome to the Team!
+        </div>
+        <div class="content">
+            <p class="message">Hello {{ fullname }},</p>
+            <p class="message">
+                An employee account has been created for you on the Certificate Portal.
+            </p>
+            <p class="message">You can log in using the following credentials:</p>
+            <div class="credentials">
+                <p><strong>Email:</strong> {{ email }}</p>
+                <p><strong>Password:</strong> {{ password }}</p>
+            </div>
+            <p class="message">
+                It is strongly recommended that you change your password after logging in for the first time.
+            </p>
+            <p style="text-align: center;">
+                <a href="{{ login_url }}" class="button">Login Now</a>
+            </p>
+        </div>
+        <div class="footer">
+            <p>&copy; {{ year }} Your Organization Name. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
