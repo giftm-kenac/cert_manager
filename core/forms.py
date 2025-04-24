@@ -7,15 +7,46 @@ from users.models import CustomUser
 class CertificationTypeForm(forms.ModelForm):
     class Meta:
         model = CertificationType
-        fields = ['name', 'description', 'issuing_organization', 'template_image', 'duration_days', 'is_active']
+        fields = [
+            'name', 'description', 'issuing_organization', 'template_image',
+            'duration_days', 'is_active',
+            # Coordinate fields (excluding certificate title)
+            'name_x', 'name_y', 'name_font_size', 'name_color',
+            'date_x', 'date_y', 'date_font_size', 'date_color',
+            'cert_id_x', 'cert_id_y', 'cert_id_font_size', 'cert_id_color',
+            'qr_code_x', 'qr_code_y', 'qr_code_size',
+        ]
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            # Existing fields
+            'name': forms.TextInput(attrs={'class': 'form-control', 'required': True}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'issuing_organization': forms.TextInput(attrs={'class': 'form-control'}),
+            'issuing_organization': forms.TextInput(attrs={'class': 'form-control', 'required': True}),
             'template_image': forms.ClearableFileInput(attrs={'class': 'form-control-file'}),
             'duration_days': forms.NumberInput(attrs={'class': 'form-control'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            # Coordinate fields
+            'name_x': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
+            'name_y': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
+            'name_font_size': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
+            'name_color': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'type': 'color'}),
+            'date_x': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
+            'date_y': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
+            'date_font_size': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
+            'date_color': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'type': 'color'}),
+            'cert_id_x': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
+            'cert_id_y': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
+            'cert_id_font_size': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
+            'cert_id_color': forms.TextInput(attrs={'class': 'form-control form-control-sm', 'type': 'color'}),
+            'qr_code_x': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
+            'qr_code_y': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
+            'qr_code_size': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
         }
+        help_texts = {
+            'name_color': 'E.g., #000000 for black',
+            'date_color': 'E.g., #333333',
+            'cert_id_color': 'E.g., #555555',
+        }
+
 
 
 class TrainingCourseForm(forms.ModelForm):

@@ -1,8 +1,7 @@
-{# core/templates/core/edit_certification_type.html #}
 {% extends 'users/base.html' %}
 {% load static %}
 
-{% block title %}Edit Certification Type: {{ cert_type.name }}{% endblock title %}
+{% block title %}Add New Certification Type{% endblock title %}
 
 {% block extra_head_css %}
     {{ block.super }}
@@ -13,12 +12,11 @@
     </style>
 {% endblock extra_head_css %}
 
-
 {% block content %}
 <div class="row justify-content-center">
     {# Changed column class to col-12 to make it full width #}
     <div class="col-12">
-        <h2 class="h3 mb-3 page-title">Edit Certification Type: {{ cert_type.name }}</h2>
+        <h2 class="h3 mb-3 page-title">Add New Certification Type</h2>
         <div class="card shadow">
             <div class="card-body">
                 <form method="post" enctype="multipart/form-data">
@@ -46,7 +44,7 @@
                      </div>
                       <div class="form-group">
                         <label for="{{ form.template_image.id_for_label }}">Template Image (Optional)</label>
-                        {{ form.template_image }} {# Django's widget handles showing current file #}
+                        {{ form.template_image }}
                         {% if form.template_image.errors %}<div class="invalid-feedback d-block">{% for error in form.template_image.errors %}{{ error }}{% endfor %}</div>{% endif %}
                      </div>
                       <div class="form-group">
@@ -123,7 +121,7 @@
                         </div>
                     </fieldset>
 
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <button type="submit" class="btn btn-primary">Save Certification Type</button>
                     <a href="{% url 'manage_certification_types' %}" class="btn btn-secondary">Cancel</a>
                 </form>
             </div>

@@ -44,9 +44,9 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            <a href="{{ cert.get_absolute_url }}" target="_blank" class="btn btn-sm btn-outline-primary">View</a>
-                                            {# Add download button if implemented #}
-                                            {# <button class="btn btn-sm btn-outline-secondary">Download</button> #}
+                                            <a href="{{ cert.get_absolute_url }}" target="_blank" class="btn btn-sm btn-outline-primary mr-1" title="Verify">View</a>
+                                            {# Download Button #}
+                                            <a href="{% url 'download_certificate' cert.id %}" class="btn btn-sm btn-outline-secondary" title="Download Certificate Image">Download</a>
                                         </td>
                                     </tr>
                                 {% empty %}

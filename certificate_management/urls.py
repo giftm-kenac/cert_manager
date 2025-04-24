@@ -24,7 +24,9 @@ urlpatterns = [
     path('my-schedule/', core_views.my_schedule_view, name='my_schedule'),
     path('courses/', core_views.available_courses_view, name='available_courses'),
     path('courses/<int:course_id>/', core_views.course_detail_view, name='course_detail'),
-    # schedule_course_action is handled within course_detail_view POST
+    path('certificate/<uuid:certificate_id>/download/', core_views.download_certificate_image_view,
+         name='download_certificate'),
+
 
     # --- Employee/Admin URLs ---
     # Employee Dashboard (from core.views)
@@ -35,6 +37,7 @@ urlpatterns = [
     path('employee/clients/<int:client_user_id>/', core_views.client_detail_view, name='client_detail'),
     # Certificate/Course Management (from core.views)
     path('employee/cert-types/', core_views.manage_certification_types_view, name='manage_certification_types'),
+    path('employee/cert-types/add/', core_views.add_certification_type_view, name='add_certification_type'),
     path('employee/cert-types/<int:certification_type_id>/edit/', core_views.edit_certification_type_view,
          name='edit_certification_type'),
     path('employee/courses/', core_views.manage_courses_view, name='manage_courses'),

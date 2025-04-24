@@ -16,68 +16,15 @@
                 <h2 class="h3 page-title">Certification Types</h2>
              </div>
              <div class="col-auto">
-                 <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addCertTypeModal">
+                 {# Changed button to a link #}
+                 <a href="{% url 'add_certification_type' %}" class="btn btn-primary">
                     <span class="fe fe-plus fe-16 mr-2"></span>Add New Type
-                 </button>
+                 </a>
              </div>
         </div>
 
-        <div class="modal fade" id="addCertTypeModal" tabindex="-1" role="dialog" aria-labelledby="addCertTypeModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="addCertTypeModalLabel">Add Certification Type</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <form method="post" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        <div class="modal-body">
-                            {% if form.non_field_errors %}
-                                <div class="alert alert-danger" role="alert">
-                                    {% for error in form.non_field_errors %}{{ error }}{% endfor %}
-                                </div>
-                            {% endif %}
-                             <div class="form-group">
-                                <label for="{{ form.name.id_for_label }}">Name</label>
-                                {{ form.name }}
-                                {% if form.name.errors %}<div class="invalid-feedback d-block">{% for error in form.name.errors %}{{ error }}{% endfor %}</div>{% endif %}
-                             </div>
-                             <div class="form-group">
-                                <label for="{{ form.description.id_for_label }}">Description</label>
-                                {{ form.description }}
-                                {% if form.description.errors %}<div class="invalid-feedback d-block">{% for error in form.description.errors %}{{ error }}{% endfor %}</div>{% endif %}
-                             </div>
-                             <div class="form-group">
-                                <label for="{{ form.issuing_organization.id_for_label }}">Issuing Organization</label>
-                                {{ form.issuing_organization }}
-                                {% if form.issuing_organization.errors %}<div class="invalid-feedback d-block">{% for error in form.issuing_organization.errors %}{{ error }}{% endfor %}</div>{% endif %}
-                             </div>
-                              <div class="form-group">
-                                <label for="{{ form.template_image.id_for_label }}">Template Image (Optional)</label>
-                                {{ form.template_image }}
-                                {% if form.template_image.errors %}<div class="invalid-feedback d-block">{% for error in form.template_image.errors %}{{ error }}{% endfor %}</div>{% endif %}
-                             </div>
-                              <div class="form-group">
-                                <label for="{{ form.duration_days.id_for_label }}">Validity Duration (Days, Optional)</label>
-                                {{ form.duration_days }}
-                                {% if form.duration_days.errors %}<div class="invalid-feedback d-block">{% for error in form.duration_days.errors %}{{ error }}{% endfor %}</div>{% endif %}
-                             </div>
-                             <div class="form-check">
-                                {{ form.is_active }}
-                                <label class="form-check-label" for="{{ form.is_active.id_for_label }}"> Is Active </label>
-                                {% if form.is_active.errors %}<div class="invalid-feedback d-block">{% for error in form.is_active.errors %}{{ error }}{% endfor %}</div>{% endif %}
-                             </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                            <button type="submit" class="btn btn-primary">Save Type</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
+        {# Removed the Add Modal HTML #}
+
         <div class="row my-4">
             <div class="col-md-12">
                 <div class="card shadow">
@@ -110,9 +57,7 @@
                                         </td>
                                         <td>{{ ctype.created_at|date:"Y-m-d" }}</td>
                                         <td>
-                                             
                                              <a href="{% url 'edit_certification_type' ctype.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
-                                            
                                         </td>
                                     </tr>
                                 {% empty %}

@@ -58,10 +58,11 @@
                                              <a href="{{ cert.get_absolute_url }}" target="_blank" class="btn btn-sm btn-outline-info mr-1" title="Verify Publicly">
                                                 <span class="fe fe-eye"></span>
                                              </a>
-                                             
-{#                                            <button class="btn btn-sm btn-outline-danger" title="Revoke">#}
-{#                                                <span class="fe fe-slash"></span>#}
-{#                                             </button> #}
+                                             {# Download Button #}
+                                             <a href="{% url 'download_certificate' cert.id %}" class="btn btn-sm btn-outline-secondary" title="Download Certificate Image">
+                                                 <span class="fe fe-download"></span>
+                                             </a>
+                                             {# Add Revoke button if needed #}
                                         </td>
                                     </tr>
                                 {% empty %}

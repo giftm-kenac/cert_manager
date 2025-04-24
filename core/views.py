@@ -2,7 +2,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import HttpResponseForbidden, HttpResponseNotFound, JsonResponse
+from django.http import HttpResponseForbidden, HttpResponseNotFound, JsonResponse, HttpResponse
 from django.utils import timezone
 from django.db import transaction
 from django.urls import reverse
@@ -16,7 +16,7 @@ from .forms import (
     CertificationTypeForm, TrainingCourseForm, IssueCertificateForm,
     ScheduleForm, UpdateScheduleStatusForm, VerifyByIdForm
 )
-from .email_utils import send_certificate_issued_email_html
+from .email_utils import send_certificate_issued_email_html, generate_certificate_image_with_details
 
 
 @client_required
@@ -169,6 +169,16 @@ def employee_dashboard_view(request):
 
 @employee_required
 def manage_certification_types_view(request):
+    # This view now only displays the list
+    types = CertificationType.objects.all().order_by('name')
+    context = {
+        'certification_types': types,
+    }
+    return render(request, 'core/manage_certification_types.html', context)
+
+@employee_required
+def add_certification_type_view(request):
+    # Handles adding a new certification type
     if request.method == 'POST':
         form = CertificationTypeForm(request.POST, request.FILES)
         if form.is_valid():
@@ -180,12 +190,10 @@ def manage_certification_types_view(request):
     else:
         form = CertificationTypeForm()
 
-    types = CertificationType.objects.all().order_by('name')
     context = {
         'form': form,
-        'certification_types': types,
     }
-    return render(request, 'core/manage_certification_types.html', context)
+    return render(request, 'core/add_certification_type.html', context)
 
 @employee_required
 def edit_certification_type_view(request, certification_type_id):
@@ -248,11 +256,10 @@ def issue_certificate_view(request):
                     )
                     certificate.save()
 
-                    # from .utils import generate_certificate_image_with_details
-                    # try:
-                    #     generate_certificate_image_with_details(certificate)
-                    # except Exception as img_err:
-                    #      messages.error(request, f"Certificate issued, but failed to generate image: {img_err}")
+                    try:
+                        generate_certificate_image_with_details(certificate)
+                    except Exception as img_err:
+                         messages.error(request, f"Certificate issued, but failed to generate image: {img_err}")
 
                     verification_url = request.build_absolute_uri(certificate.get_absolute_url())
                     send_certificate_issued_email_html(
@@ -367,4 +374,37 @@ def client_detail_view(request, client_user_id):
         'schedules': client_schedules,
     }
     return render(request, 'core/client_detail.html', context)
+
+
+@login_required
+def download_certificate_image_view(request, certificate_id):
+    try:
+        certificate = get_object_or_404(Certificate, id=certificate_id)
+
+        if not request.user.is_employee and certificate.client != request.user:
+            messages.error(request, "You are not authorized to download this certificate.")
+            return redirect('client_dashboard')
+
+        # Regenerate the image on the fly
+        try:
+            image_buffer = generate_certificate_image_with_details(certificate)
+            # Prepare response
+            response = HttpResponse(image_buffer, content_type='image/png')
+
+            filename = f"Certificate_{certificate.certification_type.name.replace(' ','_')}_{certificate.client.full_name.replace(' ','_')}_{certificate.id}.png"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+        except Exception as e:
+            messages.error(request, f"Could not generate certificate image: {e}")
+            if request.user.is_employee:
+                return redirect('issued_certificates')
+            else:
+                return redirect('my_certificates')
+
+    except (Certificate.DoesNotExist, ValueError):
+         messages.error(request, "Certificate not found.")
+         if request.user.is_employee:
+            return redirect('issued_certificates')
+         else:
+            return redirect('my_certificates')
 

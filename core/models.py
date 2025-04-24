@@ -4,8 +4,8 @@ from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 import uuid
-
 from users.models import TimeStampedModel
+
 
 class CertificationType(TimeStampedModel):
     name = models.CharField(max_length=255, unique=True)
@@ -14,11 +14,35 @@ class CertificationType(TimeStampedModel):
     template_image = models.ImageField(
         upload_to='certificate_templates/',
         blank=True,
-        null=True
+        null=True,
+        help_text="Background image/design for the certificate."
     )
-    duration_days = models.PositiveIntegerField(blank=True, null=True)
+    duration_days = models.PositiveIntegerField(blank=True, null=True,
+                                                help_text="Optional: Validity duration in days from issue date.")
     is_active = models.BooleanField(default=True)
-    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True) # Price might be more relevant per course
+
+    # Recipient Name
+    name_x = models.PositiveIntegerField(default=50, help_text="X coordinate for recipient name")
+    name_y = models.PositiveIntegerField(default=200, help_text="Y coordinate for recipient name")
+    name_font_size = models.PositiveIntegerField(default=30, help_text="Font size for recipient name")
+    name_color = models.CharField(max_length=7, default="#000000", help_text="Hex color code for name (e.g., #000000)")
+
+    # Issue Date
+    date_x = models.PositiveIntegerField(default=50, help_text="X coordinate for issue date")
+    date_y = models.PositiveIntegerField(default=300, help_text="Y coordinate for issue date")
+    date_font_size = models.PositiveIntegerField(default=14, help_text="Font size for issue date")
+    date_color = models.CharField(max_length=7, default="#333333", help_text="Hex color code for date")
+
+    # Certificate ID
+    cert_id_x = models.PositiveIntegerField(default=50, help_text="X coordinate for certificate ID")
+    cert_id_y = models.PositiveIntegerField(default=350, help_text="Y coordinate for certificate ID")
+    cert_id_font_size = models.PositiveIntegerField(default=10, help_text="Font size for certificate ID")
+    cert_id_color = models.CharField(max_length=7, default="#555555", help_text="Hex color code for ID")
+
+    # QR Code
+    qr_code_x = models.PositiveIntegerField(default=600, help_text="X coordinate for QR Code (top-left)")
+    qr_code_y = models.PositiveIntegerField(default=300, help_text="Y coordinate for QR Code (top-left)")
+    qr_code_size = models.PositiveIntegerField(default=100, help_text="Size (width & height) of QR Code in pixels")
 
     def __str__(self):
         return self.name
@@ -64,24 +88,24 @@ class Certificate(TimeStampedModel):
 
         # Generate QR code data URL only after we definitely have an ID
         if not self.qr_code_data and self.pk:
-             site_url = getattr(settings, 'SITE_URL', 'http://127.0.0.1:8000')
-             try:
-                 verify_url_path = reverse('verify_certificate', kwargs={'certificate_id': self.id})
-                 self.qr_code_data = site_url + verify_url_path
-             except Exception:
-                 pass # It will be generated on the next save
+            site_url = getattr(settings, 'SITE_URL', 'http://127.0.0.1:8000')
+            try:
+                verify_url_path = reverse('verify_certificate', kwargs={'certificate_id': self.id})
+                self.qr_code_data = site_url + verify_url_path
+            except Exception:
+                pass  # It will be generated on the next save
 
         super().save(*args, **kwargs)
 
         # If QR code data wasn't generated on the first save (because pk was None), try again
         if is_new and not self.qr_code_data and self.pk:
-             self.save(update_fields=['qr_code_data'])
+            self.save(update_fields=['qr_code_data'])
 
         super().save(*args, **kwargs)
 
         # If QR code data was just generated on this save, save again
         if is_new and not self.qr_code_data:
-             self.save(update_fields=['qr_code_data'])
+            self.save(update_fields=['qr_code_data'])
 
 
 class TrainingCourse(TimeStampedModel):
@@ -121,7 +145,7 @@ class TrainingCourse(TimeStampedModel):
 
 class Schedule(TimeStampedModel):
     STATUS_CHOICES = [
-        ('REQUESTED', 'Requested'), # Changed default
+        ('REQUESTED', 'Requested'),  # Changed default
         ('SCHEDULED', 'Scheduled/Confirmed'),
         ('ATTENDED', 'Attended'),
         ('CANCELLED_BY_USER', 'Cancelled by User'),
