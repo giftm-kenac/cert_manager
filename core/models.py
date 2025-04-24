@@ -36,6 +36,11 @@ class Certificate(TimeStampedModel):
     issue_date = models.DateField(default=timezone.now)
     expiry_date = models.DateField(blank=True, null=True)
     qr_code_data = models.URLField(max_length=500, blank=True)
+    generated_certificate_image = models.ImageField(
+        upload_to='generated_certificates/',
+        blank=True,
+        null=True
+    )
 
     class Meta:
         unique_together = ('client', 'certification_type')
@@ -60,8 +65,17 @@ class Certificate(TimeStampedModel):
         # Generate QR code data URL only after we definitely have an ID
         if not self.qr_code_data and self.pk:
              site_url = getattr(settings, 'SITE_URL', 'http://127.0.0.1:8000')
-             verify_url_path = reverse('verify_certificate', kwargs={'certificate_id': self.id})
-             self.qr_code_data = site_url + verify_url_path
+             try:
+                 verify_url_path = reverse('verify_certificate', kwargs={'certificate_id': self.id})
+                 self.qr_code_data = site_url + verify_url_path
+             except Exception:
+                 pass # It will be generated on the next save
+
+        super().save(*args, **kwargs)
+
+        # If QR code data wasn't generated on the first save (because pk was None), try again
+        if is_new and not self.qr_code_data and self.pk:
+             self.save(update_fields=['qr_code_data'])
 
         super().save(*args, **kwargs)
 

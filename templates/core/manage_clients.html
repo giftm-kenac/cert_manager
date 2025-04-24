@@ -16,6 +16,10 @@
                 <h2 class="h3 page-title">Clients</h2>
                 <p class="card-text">List of all registered clients.</p>
              </div>
+          
+             <div class="col-auto">
+                 <button type="button" class="btn btn-primary">Action</button>
+             </div>
         </div>
 
         <div class="row my-4">
@@ -32,13 +36,13 @@
                                     <th><strong>Date Joined</strong></th>
                                     <th><strong>Verified</strong></th>
                                     <th><strong>Status</strong></th>
-                                    <th><strong>Action</strong></th> 
+                                    <th><strong>Action</strong></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for profile in clients %}
                                     <tr>
-                                        <td>{{ forloop.counter }}</td>
+                                        <td>{{ profile.user.id }}</td>
                                         <td>{{ profile.user.full_name }}</td>
                                         <td>{{ profile.user.email }}</td>
                                         <td>{{ profile.organization|default:"N/A" }}</td>
@@ -57,10 +61,9 @@
                                                  <span class="badge badge-danger">Inactive</span>
                                             {% endif %}
                                         </td>
-                                  
-                                        <td>
+                                        <td> {# Corrected URL name and parameter #}
                                             <a href="{% url 'client_detail' profile.user.id %}" class="btn btn-sm btn-outline-primary">View Details</a>
-                                        </td> 
+                                        </td>
                                     </tr>
                                 {% empty %}
                                     <tr>

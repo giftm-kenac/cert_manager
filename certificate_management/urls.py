@@ -46,6 +46,7 @@ urlpatterns = [
 
     # --- Public Verification URL (from core.views) ---
     path('verify/<uuid:certificate_id>/', core_views.verify_certificate_view, name='verify_certificate'),
+    path('verify-by-id/', core_views.verify_certificate_by_id_input_view, name='verify_certificate_by_id'),
 
     # --- Default Home ---
     path('', user_views.user_login_view, name='home'), # Redirects to login

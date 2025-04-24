@@ -1,3 +1,4 @@
+{# core/templates/core/verify_certificate.html #}
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
@@ -5,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verify Certificate</title>
-    <link rel="stylesheet" href="[https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css](https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css)">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="{% static 'css/feather.css' %}"> {# Include feather icons if used #}
     <style>
         body { background-color: #f8f9fa; padding-top: 3rem; }
@@ -13,28 +14,41 @@
         .status-valid { color: #28a745; }
         .status-expired { color: #dc3545; }
         .org-logo { max-height: 60px; margin-bottom: 1rem; }
-        .qr-code img { max-width: 150px; height: auto; margin-top: 1rem; }
+        /* Style for the generated image if needed */
+        .certificate-image img { max-width: 100%; height: auto; border: 1px solid #dee2e6; margin-top: 1.5rem; }
         .details dt { font-weight: 600; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="certificate-box text-center">
-            {# Optional: Display Issuing Org Logo #}
-            {# {% if certificate.certification_type.issuing_organization_logo %}
+           {% if certificate.certification_type.issuing_organization_logo %}
                 <img src="{{ certificate.certification_type.issuing_organization_logo.url }}" alt="{{ certificate.certification_type.issuing_organization }}" class="org-logo">
-            {% endif %} #}
+            {% endif %} 
 
             <h1 class="h3 mb-3">Certificate Verification</h1>
 
             {% if is_valid %}
-                <p class="status-valid h5 mb-3"><i class="fe fe-check-circle fe-16 mr-2"></i>Verified</p>
+                <p class="status-valid h5 mb-3"><i class="fe fe-check-circle fe-16 mr-2"></i>Verified & Valid</p>
             {% else %}
                  <p class="status-expired h5 mb-3"><i class="fe fe-x-circle fe-16 mr-2"></i>Expired</p>
             {% endif %}
 
             <hr>
 
+            {# Display the generated certificate image if it exists #}
+            {% if certificate.generated_certificate_image %}
+                 <div class="certificate-image mb-3">
+                    <p><strong>Certificate Image:</strong></p>
+                    <img src="{{ certificate.generated_certificate_image.url }}" alt="Certificate for {{ certificate.client.full_name }}">
+                </div>
+                <hr>
+            {% else %}
+                 <div class="alert alert-warning">The certificate image is not available. Details below are verified.</div>
+            {% endif %}
+
+
+            <h4 class="mb-3">Details</h4>
             <dl class="row text-left details">
               <dt class="col-sm-4">Recipient:</dt>
               <dd class="col-sm-8">{{ certificate.client.full_name }}</dd>
@@ -56,14 +70,14 @@
               <dt class="col-sm-4">Certificate ID:</dt>
               <dd class="col-sm-8"><small>{{ certificate.id }}</small></dd>
             </dl>
-
-            {# Display QR Code - Requires a QR code generation library view/utility #}
-            {# <div class="qr-code">
-                <img src="{% url 'generate_qr_code' certificate.id %}" alt="Verification QR Code">
-            </div> #}
+        
 
              <p class="mt-4 text-muted small">This page confirms the validity of the certificate details presented.</p>
         </div>
+         <p class="mt-5 mb-3 text-muted text-center">© {% now "Y" %}</p>
     </div>
+     {# Basic JS if needed #}
+    <script src="{% static 'js/jquery.min.js' %}"></script>
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
 </body>
 </html>

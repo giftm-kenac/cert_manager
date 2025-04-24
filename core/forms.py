@@ -70,3 +70,10 @@ class ScheduleForm(forms.Form):
 class UpdateScheduleStatusForm(forms.Form):
     status = forms.ChoiceField(choices=Schedule.STATUS_CHOICES, widget=forms.Select(attrs={'class': 'form-control form-control-sm'}))
     schedule_id = forms.IntegerField(widget=forms.HiddenInput())
+
+
+class VerifyByIdForm(forms.Form):
+    certificate_id = forms.UUIDField(
+        label="Certificate ID",
+        widget=forms.TextInput(attrs={'class': 'form-control form-control-lg', 'placeholder': 'Enter Certificate ID'})
+    )

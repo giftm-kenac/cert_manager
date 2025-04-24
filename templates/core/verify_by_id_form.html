@@ -1,0 +1,119 @@
+{# core/templates/core/verify_by_id_form.html #}
+{# This template should extend a simple public base, not the main app base #}
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Certificate by ID</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{% static 'css/feather.css' %}"> {# Optional: For icons #}
+    <style>
+        body { background-color: #f8f9fa; padding-top: 3rem; }
+        .verify-container { max-width: 700px; margin: auto; }
+        .verify-box { background-color: #fff; padding: 2rem; border-radius: .5rem; box-shadow: 0 0.5rem 1rem rgba(0,0,0,.1); }
+        .certificate-image img { max-width: 100%; height: auto; border: 1px solid #dee2e6; margin-top: 1.5rem; }
+        .status-valid { color: #28a745; }
+        .status-expired { color: #dc3545; }
+        .details dt { font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="container verify-container">
+        <div class="verify-box">
+            <h1 class="h3 mb-4 text-center">Verify Certificate</h1>
+
+            <form method="post" class="mb-4">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger" role="alert">
+                        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                    </div>
+                {% endif %}
+                 {# Display messages from the view #}
+                 {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }}" role="alert">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                 {% endif %}
+                <div class="form-group">
+                    <label for="{{ form.certificate_id.id_for_label }}">Enter Certificate ID</label>
+                    {{ form.certificate_id }}
+                    {% if form.certificate_id.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.certificate_id.errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Verify</button>
+            </form>
+
+            <hr>
+
+            {# Display results after POST #}
+            {% if request.method == 'POST' %}
+                {% if certificate %} {# Certificate object exists #}
+                    <div class="text-center">
+                        {# Display Validity Status #}
+                        {% if certificate.is_expired %}
+                             <p class="status-expired h5 mb-3"><i class="fe fe-x-circle fe-16 mr-2"></i>Expired</p>
+                        {% else %}
+                             <p class="status-valid h5 mb-3"><i class="fe fe-check-circle fe-16 mr-2"></i>Verified & Valid</p>
+                        {% endif %}
+
+                        {# Display Image if available #}
+                        {% if certificate.generated_certificate_image %}
+                            <div class="certificate-image mb-3">
+                                <p><strong>Certificate Image:</strong></p>
+                                <img src="{{ certificate.generated_certificate_image.url }}" alt="Certificate for {{ certificate.client.full_name }}">
+                            </div>
+                            <hr>
+                        {% else %}
+                            {# Optionally add a subtle note if image is missing, or omit entirely #}
+                            {# <p class="text-muted small mb-3">(Certificate image not available)</p> #}
+                        {% endif %}
+
+                        {# Always display details if certificate was found #}
+                        <h4 class="mb-3">Details</h4>
+                        <dl class="row text-left details">
+                          <dt class="col-sm-4">Recipient:</dt>
+                          <dd class="col-sm-8">{{ certificate.client.full_name }}</dd>
+
+                          <dt class="col-sm-4">Certificate:</dt>
+                          <dd class="col-sm-8">{{ certificate.certification_type.name }}</dd>
+
+                          <dt class="col-sm-4">Issued By:</dt>
+                          <dd class="col-sm-8">{{ certificate.certification_type.issuing_organization }}</dd>
+
+                          <dt class="col-sm-4">Issue Date:</dt>
+                          <dd class="col-sm-8">{{ certificate.issue_date|date:"F d, Y" }}</dd>
+
+                          {% if certificate.expiry_date %}
+                          <dt class="col-sm-4">Expiry Date:</dt>
+                          <dd class="col-sm-8">{{ certificate.expiry_date|date:"F d, Y" }}</dd>
+                          {% endif %}
+
+                          <dt class="col-sm-4">Certificate ID:</dt>
+                          <dd class="col-sm-8"><small>{{ certificate.id }}</small></dd>
+                        </dl>
+                    </div>
+
+                {% elif not_found %} {# Certificate object does not exist #}
+                    <div class="alert alert-danger text-center" role="alert">
+                        <i class="fe fe-x-octagon mr-2"></i>Certificate not found. Please check the ID and try again.
+                    </div>
+                {% endif %}
+            {% endif %}
+
+        </div>
+         <p class="mt-5 mb-3 text-muted text-center">© {% now "Y" %}</p>
+    </div>
+
+    {# Basic JS if needed #}
+    <script src="{% static 'js/jquery.min.js' %}"></script>
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+</body>
+</html>

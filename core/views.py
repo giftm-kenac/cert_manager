@@ -10,7 +10,7 @@ from .models import Certificate, CertificationType, TrainingCourse, Schedule
 from users.models import CustomUser, ClientProfile
 
 from .forms import CertificationTypeForm, TrainingCourseForm, IssueCertificateForm, ScheduleForm, \
-    UpdateScheduleStatusForm
+    UpdateScheduleStatusForm, VerifyByIdForm
 
 
 @client_required
@@ -343,3 +343,39 @@ def client_detail_view(request, client_user_id):
     }
     return render(request, 'core/client_detail.html', context)
 
+
+def verify_certificate_by_id_input_view(request):
+    certificate = None
+    not_found = False
+    image_missing = False # <-- New flag
+    form = VerifyByIdForm()
+
+    if request.method == 'POST':
+        form = VerifyByIdForm(request.POST)
+        if form.is_valid():
+            cert_id_input = form.cleaned_data['certificate_id']
+            try:
+                certificate = Certificate.objects.select_related(
+                    'client', 'certification_type'
+                ).get(id=cert_id_input)
+
+                # Check specifically for the generated image
+                if not certificate.generated_certificate_image:
+                    image_missing = True # Set the new flag
+
+
+            except Certificate.DoesNotExist:
+                not_found = True
+                certificate = None
+            except ValueError:
+                 messages.error(request, "Invalid Certificate ID format.")
+                 not_found = True
+                 certificate = None
+
+    context = {
+        'form': form,
+        'certificate': certificate,
+        'not_found': not_found,
+        'image_missing': image_missing,
+    }
+    return render(request, 'core/verify_by_id_form.html', context)
