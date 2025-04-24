@@ -1,0 +1,143 @@
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block title %}Manage Certification Types{% endblock title %}
+
+{% block extra_head_css %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/dataTables.bootstrap4.css' %}">
+{% endblock extra_head_css %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12">
+         <div class="row mb-2 align-items-center">
+             <div class="col">
+                <h2 class="h3 page-title">Certification Types</h2>
+             </div>
+             <div class="col-auto">
+                 <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addCertTypeModal">
+                    <span class="fe fe-plus fe-16 mr-2"></span>Add New Type
+                 </button>
+             </div>
+        </div>
+
+        <div class="modal fade" id="addCertTypeModal" tabindex="-1" role="dialog" aria-labelledby="addCertTypeModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addCertTypeModalLabel">Add Certification Type</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="modal-body">
+                            {% if form.non_field_errors %}
+                                <div class="alert alert-danger" role="alert">
+                                    {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                             <div class="form-group">
+                                <label for="{{ form.name.id_for_label }}">Name</label>
+                                {{ form.name }}
+                                {% if form.name.errors %}<div class="invalid-feedback d-block">{% for error in form.name.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                             </div>
+                             <div class="form-group">
+                                <label for="{{ form.description.id_for_label }}">Description</label>
+                                {{ form.description }}
+                                {% if form.description.errors %}<div class="invalid-feedback d-block">{% for error in form.description.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                             </div>
+                             <div class="form-group">
+                                <label for="{{ form.issuing_organization.id_for_label }}">Issuing Organization</label>
+                                {{ form.issuing_organization }}
+                                {% if form.issuing_organization.errors %}<div class="invalid-feedback d-block">{% for error in form.issuing_organization.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                             </div>
+                              <div class="form-group">
+                                <label for="{{ form.template_image.id_for_label }}">Template Image (Optional)</label>
+                                {{ form.template_image }}
+                                {% if form.template_image.errors %}<div class="invalid-feedback d-block">{% for error in form.template_image.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                             </div>
+                              <div class="form-group">
+                                <label for="{{ form.duration_days.id_for_label }}">Validity Duration (Days, Optional)</label>
+                                {{ form.duration_days }}
+                                {% if form.duration_days.errors %}<div class="invalid-feedback d-block">{% for error in form.duration_days.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                             </div>
+                             <div class="form-check">
+                                {{ form.is_active }}
+                                <label class="form-check-label" for="{{ form.is_active.id_for_label }}"> Is Active </label>
+                                {% if form.is_active.errors %}<div class="invalid-feedback d-block">{% for error in form.is_active.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                             </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary">Save Type</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="row my-4">
+            <div class="col-md-12">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <table class="table datatables" id="dataTable-cert-types">
+                            <thead>
+                                <tr>
+                                    <th><strong>ID</strong></th>
+                                    <th><strong>Name</strong></th>
+                                    <th><strong>Issuing Org</strong></th>
+                                    <th><strong>Duration (Days)</strong></th>
+                                    <th><strong>Active</strong></th>
+                                    <th><strong>Created</strong></th>
+                                    <th><strong>Action</strong></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ctype in certification_types %}
+                                    <tr>
+                                        <td>{{ ctype.id }}</td>
+                                        <td>{{ ctype.name }}</td>
+                                        <td>{{ ctype.issuing_organization }}</td>
+                                        <td>{{ ctype.duration_days|default:"N/A" }}</td>
+                                        <td>
+                                            {% if ctype.is_active %}
+                                                <span class="fe fe-check-circle text-success"></span>
+                                            {% else %}
+                                                 <span class="fe fe-x-circle text-danger"></span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ ctype.created_at|date:"Y-m-d" }}</td>
+                                        <td>
+                                             
+                                             <a href="{% url 'edit_certification_type' ctype.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                            
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="7" class="text-center">No certification types found.</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_body_js %}
+ {{ block.super }}
+ <script src="{% static 'js/jquery.dataTables.min.js' %}"></script>
+ <script src="{% static 'js/dataTables.bootstrap4.min.js' %}"></script>
+ <script>
+   $('#dataTable-cert-types').DataTable({
+     autoWidth: true,
+     "lengthMenu": [ [10, 25, 50, -1], [10, 25, 50, "All"] ]
+   });
+ </script>
+{% endblock extra_body_js %}

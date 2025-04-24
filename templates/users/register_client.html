@@ -1,0 +1,69 @@
+{% extends 'users/auth_base.html' %}
+{% load static %}
+
+{% block auth_title %}Client Registration{% endblock auth_title %}
+
+{% block auth_content %}
+<form class="col-lg-6 col-md-8 col-10 mx-auto" method="post" novalidate>
+    {% csrf_token %}
+    <div class="text-center mb-4">
+        <a class="navbar-brand mx-auto mt-2 flex-fill text-center" href="/">
+             <svg version="1.1" id="logo" class="navbar-brand-img brand-md" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" xmlns:xlink="[http://www.w3.org/1999/xlink](http://www.w3.org/1999/xlink)" x="0px" y="0px" viewBox="0 0 120 120" xml:space="preserve">
+               <g><polygon class="st0" points="78,105 15,105 24,87 87,87"/><polygon class="st0" points="96,69 33,69 42,51 105,51"/><polygon class="st0" points="78,33 15,33 24,15 87,15"/></g>
+             </svg>
+        </a>
+        <h1 class="h3 mb-3">Register Your Account</h1>
+        <p>Create an account to manage your certificates.</p>
+    </div>
+
+    {% if form.non_field_errors %}
+        <div class="alert alert-danger" role="alert">
+            {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="form-row">
+        <div class="form-group col-md-6">
+            <label for="id_first_name">First name</label>
+            {{ form.first_name }}
+            {% if form.first_name.errors %}<div class="invalid-feedback d-block">{% for error in form.first_name.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="form-group col-md-6">
+            <label for="id_last_name">Last name</label>
+            {{ form.last_name }}
+             {% if form.last_name.errors %}<div class="invalid-feedback d-block">{% for error in form.last_name.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+    </div>
+    <div class="form-group">
+        <label for="id_email">Email address</label>
+        {{ form.email }}
+         {% if form.email.errors %}<div class="invalid-feedback d-block">{% for error in form.email.errors %}{{ error }}{% endfor %}</div>{% endif %}
+    </div>
+     <div class="form-group">
+        <label for="id_phone_number">Phone Number (Optional)</label>
+        {{ form.phone_number }}
+         {% if form.phone_number.errors %}<div class="invalid-feedback d-block">{% for error in form.phone_number.errors %}{{ error }}{% endfor %}</div>{% endif %}
+    </div>
+     <div class="form-group">
+        <label for="id_organization">Organization (Optional)</label>
+        {{ form.organization }}
+         {% if form.organization.errors %}<div class="invalid-feedback d-block">{% for error in form.organization.errors %}{{ error }}{% endfor %}</div>{% endif %}
+    </div>
+    <div class="form-row">
+        <div class="form-group col-md-6">
+            <label for="id_password1">Password</label>
+            {{ form.password1 }}
+             {% if form.password1.errors %}<div class="invalid-feedback d-block">{% for error in form.password1.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+        <div class="form-group col-md-6">
+            <label for="id_password2">Confirm Password</label>
+            {{ form.password2 }}
+             {% if form.password2.errors %}<div class="invalid-feedback d-block">{% for error in form.password2.errors %}{{ error }}{% endfor %}</div>{% endif %}
+        </div>
+    </div>
+
+    <button class="btn btn-lg btn-primary btn-block" type="submit">Sign up</button>
+    <p class="mt-3 text-center">Already have an account? <a href="{% url 'user_login' %}">Login</a></p>
+    <p class="mt-5 mb-3 text-muted text-center">© {% now "Y" %}</p>
+</form>
+{% endblock auth_content %}

@@ -1,0 +1,77 @@
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block title %}My Certificates{% endblock title %}
+
+{% block extra_head_css %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/dataTables.bootstrap4.css' %}">
+{% endblock extra_head_css %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12">
+        <h2 class="h3 mb-3 page-title">My Certificates</h2>
+        <div class="row my-4">
+            <div class="col-md-12">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <table class="table datatables" id="dataTable-certificates">
+                            <thead>
+                                <tr>
+                                    <th><strong>#</strong></th>
+                                    <th><strong>Certificate Type</strong></th>
+                                    <th><strong>Issuing Organization</strong></th>
+                                    <th><strong>Issue Date</strong></th>
+                                    <th><strong>Expiry Date</strong></th>
+                                    <th><strong>Status</strong></th>
+                                    <th><strong>Action</strong></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cert in certificates %}
+                                    <tr>
+                                        <td>{{ forloop.counter }}</td>
+                                        <td>{{ cert.certification_type.name }}</td>
+                                        <td>{{ cert.certification_type.issuing_organization }}</td>
+                                        <td>{{ cert.issue_date|date:"Y-m-d" }}</td>
+                                        <td>{{ cert.expiry_date|date:"Y-m-d"|default:"N/A" }}</td>
+                                        <td>
+                                            {% if cert.is_expired %}
+                                                <span class="badge badge-danger">Expired</span>
+                                            {% else %}
+                                                <span class="badge badge-success">Valid</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{{ cert.get_absolute_url }}" target="_blank" class="btn btn-sm btn-outline-primary">View</a>
+                                            {# Add download button if implemented #}
+                                            {# <button class="btn btn-sm btn-outline-secondary">Download</button> #}
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="7" class="text-center">You have not been issued any certificates yet.</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_body_js %}
+ {{ block.super }}
+ <script src="{% static 'js/jquery.dataTables.min.js' %}"></script>
+ <script src="{% static 'js/dataTables.bootstrap4.min.js' %}"></script>
+ <script>
+   $('#dataTable-certificates').DataTable({
+     autoWidth: true,
+     "lengthMenu": [ [10, 25, 50, -1], [10, 25, 50, "All"] ]
+   });
+ </script>
+{% endblock extra_body_js %}

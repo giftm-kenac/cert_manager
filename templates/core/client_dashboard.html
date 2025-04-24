@@ -1,0 +1,98 @@
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block title %}Client Dashboard{% endblock title %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12">
+        <div class="row align-items-center mb-2">
+            <div class="col">
+              <h2 class="h5 page-title">Welcome, {{ request.user.full_name }}!</h2>
+            </div>
+            {# Optional: Add date range picker or other controls if needed #}
+        </div>
+
+        {# Add dashboard widgets here #}
+        <div class="row">
+             <div class="col-md-6 col-xl-4 mb-4">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-3 text-center">
+                              <span class="circle circle-sm bg-primary">
+                                <i class="fe fe-award fe-16 text-white"></i>
+                              </span>
+                            </div>
+                            <div class="col pr-0">
+                                <p class="small text-muted mb-0">My Certificates</p>
+                                {# Use the count passed from the view #}
+                                <span class="h3 mb-0">{{ total_certificates|default:0 }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+             <div class="col-md-6 col-xl-4 mb-4">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-3 text-center">
+                              <span class="circle circle-sm bg-success">
+                                <i class="fe fe-book-open fe-16 text-white"></i>
+                              </span>
+                            </div>
+                            <div class="col pr-0">
+                                <p class="small text-muted mb-0">My Scheduled Courses</p>
+                                {# Use the count passed from the view #}
+                                <span class="h3 mb-0">{{ active_schedules_count|default:0 }}</span> {# Corrected variable #}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {# Add more widgets as needed #}
+        </div>
+
+        {# Example: Recent Certificates Section #}
+        <div class="row my-4">
+             <div class="col-md-12">
+                <div class="card shadow">
+                    <div class="card-header">
+                      <strong class="card-title">Recent Certificates</strong>
+                      <a class="float-right small text-muted" href="{% url 'my_certificates' %}">View all</a>
+                    </div>
+                    <div class="card-body">
+                         {# Use the recent_certificates passed from the view #}
+                         {% if recent_certificates %}
+                            <div class="list-group list-group-flush my-n3">
+                            {% for cert in recent_certificates %}
+                                <div class="list-group-item">
+                                    <div class="row align-items-center">
+                                        <div class="col-auto">
+                                            <span class="fe fe-award fe-24 text-primary"></span>
+                                        </div>
+                                        <div class="col">
+                                            <small><strong>{{ cert.certification_type.name }}</strong></small>
+                                            <div class="my-0 text-muted small">Issued: {{ cert.issue_date|date:"Y-m-d" }}
+                                            {% if cert.expiry_date %} | Expires: {{ cert.expiry_date|date:"Y-m-d" }} {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                             <a href="{{ cert.get_absolute_url }}" target="_blank" class="btn btn-sm btn-outline-primary">View</a>
+                                             {# Add download button if implemented #}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-center text-muted">You have not been issued any certificates yet.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div> </div> {% endblock content %}
+

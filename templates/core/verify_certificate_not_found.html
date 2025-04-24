@@ -1,0 +1,26 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Not Found</title>
+     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+     <link rel="stylesheet" href="{% static 'css/feather.css' %}">
+     <style>
+        body { background-color: #f8f9fa; padding-top: 3rem; }
+        .message-box { background-color: #fff; padding: 2rem; border-radius: .5rem; box-shadow: 0 0.5rem 1rem rgba(0,0,0,.1); max-width: 600px; margin: auto; text-align: center;}
+     </style>
+</head>
+<body>
+    <div class="container">
+        <div class="message-box">
+             <i class="fe fe-alert-triangle fe-32 text-danger mb-3"></i>
+             <h1 class="h4 mb-3">Certificate Not Found</h1>
+             <p class="text-muted">The certificate ID you provided could not be found or is invalid. Please check the ID or QR code and try again.</p>
+             {# Optional: Link back to home or help page #}
+             {# <a href="/" class="btn btn-primary mt-3">Go Home</a> #}
+        </div>
+    </div>
+</body>
+</html>

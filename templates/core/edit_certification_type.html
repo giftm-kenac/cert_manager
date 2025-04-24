@@ -1,0 +1,64 @@
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block title %}Edit Certification Type: {{ cert_type.name }}{% endblock title %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <h2 class="h3 mb-3 page-title">Edit Certification Type: {{ cert_type.name }}</h2>
+        <div class="card shadow">
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data"> {# Added enctype for file upload #}
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger" role="alert">
+                            {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+
+                     <div class="form-group">
+                        <label for="{{ form.name.id_for_label }}">Name</label>
+                        {{ form.name }}
+                        {% if form.name.errors %}<div class="invalid-feedback d-block">{% for error in form.name.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                     </div>
+                     <div class="form-group">
+                        <label for="{{ form.description.id_for_label }}">Description</label>
+                        {{ form.description }}
+                        {% if form.description.errors %}<div class="invalid-feedback d-block">{% for error in form.description.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                     </div>
+                     <div class="form-group">
+                        <label for="{{ form.issuing_organization.id_for_label }}">Issuing Organization</label>
+                        {{ form.issuing_organization }}
+                        {% if form.issuing_organization.errors %}<div class="invalid-feedback d-block">{% for error in form.issuing_organization.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                     </div>
+                      <div class="form-group">
+                        <label for="{{ form.template_image.id_for_label }}">Template Image (Optional)</label>
+                         {# Removed the manual "Current:" paragraph - Django's widget handles this #}
+                        {{ form.template_image }} {# This widget will show "Currently: ..." and "Clear" checkbox if an image exists #}
+                        {% if form.template_image.errors %}<div class="invalid-feedback d-block">{% for error in form.template_image.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                     </div>
+                      <div class="form-group">
+                        <label for="{{ form.duration_days.id_for_label }}">Validity Duration (Days, Optional)</label>
+                        {{ form.duration_days }}
+                        {% if form.duration_days.errors %}<div class="invalid-feedback d-block">{% for error in form.duration_days.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                     </div>
+                     <div class="form-check mb-3">
+                        {{ form.is_active }}
+                        <label class="form-check-label" for="{{ form.is_active.id_for_label }}"> Is Active </label>
+                        {% if form.is_active.errors %}<div class="invalid-feedback d-block">{% for error in form.is_active.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                     </div>
+
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <a href="{% url 'manage_certification_types' %}" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_body_js %}
+ {# Add JS for specific form elements if needed, e.g., Select2 #}
+ {{ block.super }}
+{% endblock extra_body_js %}

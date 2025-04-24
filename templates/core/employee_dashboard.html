@@ -1,0 +1,94 @@
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block title %}Employee Dashboard{% endblock title %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12">
+        <div class="row align-items-center mb-2">
+            <div class="col">
+              <h2 class="h5 page-title">Employee Dashboard</h2>
+            </div>
+             {# Optional controls #}
+        </div>
+
+        {# Add dashboard widgets relevant to employees #}
+        <div class="row">
+             <div class="col-md-6 col-xl-4 mb-4">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-3 text-center">
+                              <span class="circle circle-sm bg-primary">
+                                <i class="fe fe-users fe-16 text-white"></i>
+                              </span>
+                            </div>
+                            <div class="col pr-0">
+                                <p class="small text-muted mb-0">Total Clients</p>
+                                {# Add count from view context #}
+                                <span class="h3 mb-0">{{ total_clients|default:0 }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+             <div class="col-md-6 col-xl-4 mb-4">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-3 text-center">
+                              <span class="circle circle-sm bg-success">
+                                <i class="fe fe-award fe-16 text-white"></i>
+                              </span>
+                            </div>
+                            <div class="col pr-0">
+                                <p class="small text-muted mb-0">Certificates Issued</p>
+                                 {# Add count from view context #}
+                                <span class="h3 mb-0">{{ total_certificates_issued|default:0 }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+             <div class="col-md-6 col-xl-4 mb-4">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-3 text-center">
+                              <span class="circle circle-sm bg-info">
+                                <i class="fe fe-book-open fe-16 text-white"></i>
+                              </span>
+                            </div>
+                            <div class="col pr-0">
+                                <p class="small text-muted mb-0">Active Courses</p>
+                                 {# Add count from view context #}
+                                <span class="h3 mb-0">{{ active_courses|default:0 }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {# Add more widgets as needed #}
+        </div>
+
+         {# Example: Quick Links Section #}
+        <div class="row my-4">
+             <div class="col-md-12">
+                <div class="card shadow">
+                    <div class="card-header">
+                      <strong class="card-title">Quick Actions</strong>
+                    </div>
+                    <div class="card-body">
+                       <a href="{% url 'issue_certificate' %}" class="btn btn-primary mr-2">Issue Certificate</a>
+                       <a href="{% url 'manage_certification_types' %}" class="btn btn-secondary mr-2">Manage Cert Types</a>
+                       <a href="{% url 'manage_courses' %}" class="btn btn-secondary mr-2">Manage Courses</a>
+                       <a href="{% url 'manage_employees' %}" class="btn btn-secondary">Manage Employees</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock content %}

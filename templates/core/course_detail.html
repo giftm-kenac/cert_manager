@@ -1,0 +1,122 @@
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block title %}{{ course.name }}{% endblock title %}
+
+{% block content %}
+<div class="row justify-content-center">
+    {# Changed col-xl-8 to col-xl-10 and col-lg-10 to col-lg-12 to make it wider #}
+    <div class="col-12 col-lg-12 col-xl-10">
+        <h2 class="h3 mb-4 page-title">{{ course.name }}</h2>
+        <div class="card shadow mb-4">
+            <div class="card-body">
+                <div class="row">
+                    {# Main content area (description, details) #}
+                    <div class="col-md-8">
+                        <h4>Description</h4>
+                        <p>{{ course.description|linebreaksbr|default:"No description provided." }}</p>
+
+                        <h4 class="mt-4">Details</h4>
+                        <dl class="row">
+                            {% if course.certification_type %}
+                            <dt class="col-sm-3">Certification</dt>
+                            <dd class="col-sm-9">{{ course.certification_type.name }}</dd>
+                            {% endif %}
+
+                            {% if course.instructor %}
+                            <dt class="col-sm-3">Instructor</dt>
+                            <dd class="col-sm-9">{{ course.instructor }}</dd>
+                            {% endif %}
+
+                            {% if course.delivery_method %}
+                            <dt class="col-sm-3">Delivery Method</dt>
+                            <dd class="col-sm-9">{{ course.get_delivery_method_display }}</dd>
+                             {% endif %}
+
+                             {% if course.location %}
+                            <dt class="col-sm-3">Location</dt>
+                            <dd class="col-sm-9">{{ course.location }}</dd>
+                             {% endif %}
+
+                            {% if course.start_date %}
+                            <dt class="col-sm-3">Start Date</dt>
+                            <dd class="col-sm-9">{{ course.start_date|date:"Y-m-d H:i" }}</dd>
+                             {% endif %}
+
+                             {% if course.end_date %}
+                            <dt class="col-sm-3">End Date</dt>
+                            <dd class="col-sm-9">{{ course.end_date|date:"Y-m-d H:i" }}</dd>
+                             {% endif %}
+                        </dl>
+                    </div>
+                    {# Sidebar area (scheduling) #}
+                    <div class="col-md-4">
+                        <div class="card bg-light"> {# Consider removing bg-light if it clashes #}
+                            <div class="card-body">
+                                <h5 class="card-title">Schedule</h5>
+                                {% if course.price %}
+                                    <p><strong>Price:</strong> ${{ course.price }}</p>
+                                {% else %}
+                                    <p><strong>Price:</strong> Free</p>
+                                {% endif %}
+
+                                {% if existing_schedule %}
+                                    <p class="text-success">You are currently scheduled for this course.</p>
+                                    <p><strong>Status:</strong> {{ existing_schedule.get_status_display }}</p>
+                                    {% if existing_schedule.event_datetime %}
+                                        <p><strong>Scheduled for:</strong> {{ existing_schedule.event_datetime|date:"Y-m-d H:i" }}</p>
+                                    {% endif %}
+                                    {% if existing_schedule.status == 'REQUESTED' or existing_schedule.status == 'SCHEDULED' %}
+                                        <form method="post" action="{% url 'course_detail' course.id %}">
+                                            {% csrf_token %}
+                                            <button type="submit" name="cancel_schedule" class="btn btn-sm btn-outline-danger">Cancel Schedule</button>
+                                        </form>
+                                    {% endif %}
+                                {% else %}
+                                    <p>Request to schedule this course:</p>
+                                    <form method="post" action="{% url 'course_detail' course.id %}">
+                                        {% csrf_token %}
+                                         {% if schedule_form.non_field_errors %}
+                                            <div class="alert alert-danger p-1 small" role="alert">
+                                                {% for error in schedule_form.non_field_errors %}{{ error }}{% endfor %}
+                                            </div>
+                                        {% endif %}
+                                        <div class="form-group">
+                                            <label for="{{ schedule_form.event_datetime.id_for_label }}">Select Date & Time</label>
+                                            {{ schedule_form.event_datetime }}
+                                            {% if schedule_form.event_datetime.errors %}<div class="invalid-feedback d-block">{% for error in schedule_form.event_datetime.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                                        </div>
+                                         <div class="form-group">
+                                            <label for="{{ schedule_form.notes.id_for_label }}">Notes (Optional)</label>
+                                            {{ schedule_form.notes }}
+                                            {% if schedule_form.notes.errors %}<div class="invalid-feedback d-block">{% for error in schedule_form.notes.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                                        </div>
+                                        <button type="submit" class="btn btn-primary btn-block">Request Schedule</button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_body_js %}
+ {{ block.super }}
+ {# Include datepicker JS if not global #}
+ <script src='{% static 'js/daterangepicker.js' %}'></script>
+ <script>
+    // Initialize date/time picker for the schedule form
+    $('.datetimes').daterangepicker({
+        singleDatePicker: true,
+        timePicker: true,
+        timePickerIncrement: 15, 
+        timePicker24Hour: false, // Use AM/PM
+        minDate: moment(), // Prevent scheduling in the past
+        locale: { format: 'YYYY-MM-DD hh:mm A' }
+    });
+ </script>
+{% endblock extra_body_js %}

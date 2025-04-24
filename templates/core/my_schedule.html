@@ -1,0 +1,86 @@
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block title %}My Schedule{% endblock title %}
+
+{% block extra_head_css %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/dataTables.bootstrap4.css' %}">
+{% endblock extra_head_css %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12">
+        <h2 class="h3 mb-3 page-title">My Scheduled Courses</h2>
+        <div class="row my-4">
+            <div class="col-md-12">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <table class="table datatables" id="dataTable-schedule">
+                            <thead>
+                                <tr>
+                                    <th><strong>#</strong></th>
+                                    <th><strong>Course Name</strong></th>
+                                    <th><strong>Scheduled Date/Time</strong></th>
+                                    <th><strong>Status</strong></th>
+                                    <th><strong>Action</strong></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for schedule in schedules %}
+                                    <tr>
+                                        <td>{{ forloop.counter }}</td>
+                                        <td>{{ schedule.course.name }}</td>
+                                        <td>{{ schedule.event_datetime|date:"Y-m-d H:i"|default:"Pending Confirmation" }}</td>
+                                        <td>
+                                            {# Use different badges based on status #}
+                                            {% if schedule.status == 'SCHEDULED' or schedule.status == 'REQUESTED' %}
+                                                <span class="badge badge-pill badge-primary">{{ schedule.get_status_display }}</span>
+                                            {% elif schedule.status == 'ATTENDED' or schedule.status == 'COMPLETED' %}
+                                                <span class="badge badge-pill badge-success">{{ schedule.get_status_display }}</span>
+                                            {% elif schedule.status == 'CANCELLED_BY_USER' or schedule.status == 'CANCELLED_BY_ADMIN' %}
+                                                 <span class="badge badge-pill badge-secondary">{{ schedule.get_status_display }}</span>
+                                            {% elif schedule.status == 'NO_SHOW' %}
+                                                 <span class="badge badge-pill badge-warning">{{ schedule.get_status_display }}</span>
+                                            {% else %}
+                                                 <span class="badge badge-pill badge-light">{{ schedule.get_status_display }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                             <a href="{% url 'course_detail' schedule.course.id %}" class="btn btn-sm btn-outline-primary">View Course</a>
+                                             {# Optionally add cancel button here too if status allows #}
+                                             {% if schedule.status == 'REQUESTED' or schedule.status == 'SCHEDULED' %}
+                                                <form method="post" action="{% url 'course_detail' schedule.course.id %}" style="display: inline;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" name="cancel_schedule" class="btn btn-sm btn-outline-danger ml-1">Cancel</button>
+                                                </form>
+                                             {% endif %}
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center">You have no scheduled courses.</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_body_js %}
+ {{ block.super }}
+ <script src="{% static 'js/jquery.dataTables.min.js' %}"></script>
+ <script src="{% static 'js/dataTables.bootstrap4.min.js' %}"></script>
+ <script>
+   $('#dataTable-schedule').DataTable({
+     autoWidth: true,
+     "lengthMenu": [ [10, 25, 50, -1], [10, 25, 50, "All"] ],
+     "order": [] // Optional: disable initial sorting if needed
+   });
+ </script>
+{% endblock extra_body_js %}

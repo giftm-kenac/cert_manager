@@ -1,0 +1,93 @@
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block title %}Issued Certificates{% endblock title %}
+
+{% block extra_head_css %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/dataTables.bootstrap4.css' %}">
+{% endblock extra_head_css %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12">
+        <div class="row mb-2 align-items-center">
+             <div class="col">
+                <h2 class="h3 page-title">Issued Certificates</h2>
+                <p class="card-text">List of all certificates issued by the system.</p>
+             </div>
+             <div class="col-auto">
+                 <a href="{% url 'issue_certificate' %}" class="btn btn-primary">
+                    <span class="fe fe-plus fe-16 mr-2"></span>Issue New Certificate
+                 </a>
+             </div>
+        </div>
+
+        <div class="row my-4">
+            <div class="col-md-12">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <table class="table datatables" id="dataTable-issued-certs">
+                            <thead>
+                                <tr>
+                                    <th><strong>Cert ID</strong></th>
+                                    <th><strong>Client Name</strong></th>
+                                    <th><strong>Certificate Type</strong></th>
+                                    <th><strong>Issue Date</strong></th>
+                                    <th><strong>Expiry Date</strong></th>
+                                    <th><strong>Status</strong></th>
+                                    <th><strong>Action</strong></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cert in certificates %}
+                                    <tr>
+                                        <td><small>{{ cert.id }}</small></td>
+                                        <td>{{ cert.client.full_name }}</td>
+                                        <td>{{ cert.certification_type.name }}</td>
+                                        <td>{{ cert.issue_date|date:"Y-m-d" }}</td>
+                                        <td>{{ cert.expiry_date|date:"Y-m-d"|default:"N/A" }}</td>
+                                        <td>
+                                            {% if cert.is_expired %}
+                                                <span class="badge badge-danger">Expired</span>
+                                            {% else %}
+                                                <span class="badge badge-success">Valid</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                             <a href="{{ cert.get_absolute_url }}" target="_blank" class="btn btn-sm btn-outline-info mr-1" title="Verify Publicly">
+                                                <span class="fe fe-eye"></span>
+                                             </a>
+                                             
+{#                                            <button class="btn btn-sm btn-outline-danger" title="Revoke">#}
+{#                                                <span class="fe fe-slash"></span>#}
+{#                                             </button> #}
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="7" class="text-center">No certificates have been issued yet.</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_body_js %}
+ {{ block.super }}
+ <script src="{% static 'js/jquery.dataTables.min.js' %}"></script>
+ <script src="{% static 'js/dataTables.bootstrap4.min.js' %}"></script>
+ <script>
+   $('#dataTable-issued-certs').DataTable({
+     autoWidth: true,
+     "lengthMenu": [ [10, 25, 50, -1], [10, 25, 50, "All"] ],
+     "order": [[ 3, "desc" ]] // Default sort by issue date descending
+   });
+ </script>
+{% endblock extra_body_js %}

@@ -1,0 +1,90 @@
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block title %}Manage Clients{% endblock title %}
+
+{% block extra_head_css %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/dataTables.bootstrap4.css' %}">
+{% endblock extra_head_css %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12">
+        <div class="row mb-2 align-items-center">
+             <div class="col">
+                <h2 class="h3 page-title">Clients</h2>
+                <p class="card-text">List of all registered clients.</p>
+             </div>
+        </div>
+
+        <div class="row my-4">
+            <div class="col-md-12">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <table class="table datatables" id="dataTable-clients">
+                            <thead>
+                                <tr>
+                                    <th><strong>ID</strong></th>
+                                    <th><strong>Name</strong></th>
+                                    <th><strong>Email</strong></th>
+                                    <th><strong>Organization</strong></th>
+                                    <th><strong>Date Joined</strong></th>
+                                    <th><strong>Verified</strong></th>
+                                    <th><strong>Status</strong></th>
+                                    <th><strong>Action</strong></th> 
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for profile in clients %}
+                                    <tr>
+                                        <td>{{ forloop.counter }}</td>
+                                        <td>{{ profile.user.full_name }}</td>
+                                        <td>{{ profile.user.email }}</td>
+                                        <td>{{ profile.organization|default:"N/A" }}</td>
+                                        <td>{{ profile.user.created_at|date:"Y-m-d" }}</td>
+                                        <td>
+                                            {% if profile.user.is_verified %}
+                                                <span class="fe fe-check-circle text-success"></span> Yes
+                                            {% else %}
+                                                 <span class="fe fe-x-circle text-warning"></span> No
+                                            {% endif %}
+                                        </td>
+                                         <td>
+                                            {% if profile.user.is_active %}
+                                                <span class="badge badge-success">Active</span>
+                                            {% else %}
+                                                 <span class="badge badge-danger">Inactive</span>
+                                            {% endif %}
+                                        </td>
+                                  
+                                        <td>
+                                            <a href="{% url 'client_detail' profile.user.id %}" class="btn btn-sm btn-outline-primary">View Details</a>
+                                        </td> 
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="8" class="text-center">No clients found.</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_body_js %}
+ {{ block.super }}
+ <script src="{% static 'js/jquery.dataTables.min.js' %}"></script>
+ <script src="{% static 'js/dataTables.bootstrap4.min.js' %}"></script>
+ <script>
+   $('#dataTable-clients').DataTable({
+     autoWidth: true,
+     "lengthMenu": [ [10, 25, 50, -1], [10, 25, 50, "All"] ]
+   });
+ </script>
+{% endblock extra_body_js %}

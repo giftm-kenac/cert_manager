@@ -1,0 +1,52 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="Certificate Management System - Authentication">
+    <meta name="author" content="">
+    <link rel="icon" href="{% static 'favicon.ico' %}"> {# Update path if needed #}
+    <title>{% block auth_title %}Authentication{% endblock auth_title %} | Certificate Portal</title>
+    <link rel="stylesheet" href="{% static 'css/simplebar.css' %}">
+    <link href="[https://fonts.googleapis.com/css2?family=Overpass:ital,wght@0,100;0,200;0,300;0,400;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,600;1,700;1,800;1,900&display=swap](https://fonts.googleapis.com/css2?family=Overpass:ital,wght@0,100;0,200;0,300;0,400;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,600;1,700;1,800;1,900&display=swap)" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/feather.css' %}">
+    <link rel="stylesheet" href="{% static 'css/app-light.css' %}" id="lightTheme">
+    <link rel="stylesheet" href="{% static 'css/app-dark.css' %}" id="darkTheme" disabled>
+</head>
+<body class="light">
+    <div class="wrapper vh-100">
+        <div class="row align-items-center h-100">
+             {# Display Django messages #}
+             {% if messages %}
+             <div class="col-lg-6 col-md-8 col-10 mx-auto">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                {% endfor %}
+             </div>
+             {% endif %}
+
+            {% block auth_content %}
+            {# Authentication form content goes here #}
+            {% endblock auth_content %}
+        </div>
+    </div>
+
+    {# Basic JS needed for theme switching or basic functionality #}
+    <script src="{% static 'js/jquery.min.js' %}"></script>
+    <script src="{% static 'js/popper.min.js' %}"></script>
+    <script src="{% static 'js/moment.min.js' %}"></script>
+    <script src="{% static 'js/bootstrap.min.js' %}"></script>
+    <script src="{% static 'js/simplebar.min.js' %}"></script>
+    <script src='{% static 'js/daterangepicker.js' %}'></script> {# Might not be needed #}
+    <script src='{% static 'js/jquery.stickOnScroll.js' %}'></script> {# Might not be needed #}
+    <script src="{% static 'js/tinycolor-min.js' %}"></script>
+    <script src="{% static 'js/config.js' %}"></script>
+    <script src="{% static 'js/apps.js' %}"></script>
+</body>
+</html>

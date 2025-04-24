@@ -1,0 +1,69 @@
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block title %}Issue Certificate{% endblock title %}
+
+{% block extra_head_css %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/select2.css' %}">
+     <link rel="stylesheet" href="{% static 'css/daterangepicker.css' %}">
+{% endblock extra_head_css %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <h2 class="h3 mb-4 page-title">Issue New Certificate</h2>
+        <div class="card shadow">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger" role="alert">
+                            {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <div class="form-group">
+                        <label for="{{ form.client.id_for_label }}">Select Client</label>
+                        {{ form.client }}
+                        {% if form.client.errors %}<div class="invalid-feedback d-block">{% for error in form.client.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                    </div>
+
+                     <div class="form-group">
+                        <label for="{{ form.certification_type.id_for_label }}">Select Certification Type</label>
+                        {{ form.certification_type }}
+                        {% if form.certification_type.errors %}<div class="invalid-feedback d-block">{% for error in form.certification_type.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                    </div>
+
+                     <div class="form-group">
+                        <label for="{{ form.issue_date.id_for_label }}">Issue Date (Optional)</label>
+                        {{ form.issue_date }}
+                        {% if form.issue_date.errors %}<div class="invalid-feedback d-block">{% for error in form.issue_date.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                         <small class="form-text text-muted">{{ form.issue_date.help_text }}</small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Issue Certificate</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_body_js %}
+ {{ block.super }}
+ <script src="{% static 'js/select2.min.js' %}"></script>
+ <script src='{% static 'js/daterangepicker.js' %}'></script>
+ <script>
+    // Initialize select2 and datepicker for this form
+    $(document).ready(function() {
+        $('#{{ form.client.id_for_label }}').select2({ theme: 'bootstrap4', placeholder: 'Select a client' });
+        $('#{{ form.certification_type.id_for_label }}').select2({ theme: 'bootstrap4', placeholder: 'Select a certification type' });
+        $('#{{ form.issue_date.id_for_label }}').daterangepicker({
+            singleDatePicker: true,
+            showDropdowns: true,
+            locale: { format: 'YYYY-MM-DD' }
+        });
+    });
+ </script>
+{% endblock extra_body_js %}

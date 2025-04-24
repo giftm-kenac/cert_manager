@@ -1,0 +1,204 @@
+{# core/templates/core/manage_courses.html #}
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block title %}Manage Courses{% endblock title %}
+
+{% block extra_head_css %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/dataTables.bootstrap4.css' %}">
+    <link rel="stylesheet" href="{% static 'css/select2.css' %}">
+    <link rel="stylesheet" href="{% static 'css/daterangepicker.css' %}">
+{% endblock extra_head_css %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12">
+         <div class="row mb-2 align-items-center">
+             <div class="col">
+                <h2 class="h3 page-title">Training Courses</h2>
+             </div>
+             <div class="col-auto">
+                 <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addCourseModal">
+                    <span class="fe fe-plus fe-16 mr-2"></span>Add New Course
+                 </button>
+             </div>
+        </div>
+
+        <div class="modal fade" id="addCourseModal" tabindex="-1" role="dialog" aria-labelledby="addCourseModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addCourseModalLabel">Add Training Course</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <form method="post" enctype="multipart/form-data"> {# Added enctype #}
+                        {% csrf_token %}
+                        <div class="modal-body">
+                             {% if form.non_field_errors %}
+                                <div class="alert alert-danger" role="alert">
+                                    {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                             <div class="form-group">
+                                <label for="{{ form.name.id_for_label }}">Course Name</label>
+                                {{ form.name }}
+                                {% if form.name.errors %}<div class="invalid-feedback d-block">{% for error in form.name.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                             </div>
+                             <div class="form-group">
+                                <label for="{{ form.description.id_for_label }}">Description</label>
+                                {{ form.description }}
+                                {% if form.description.errors %}<div class="invalid-feedback d-block">{% for error in form.description.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                             </div>
+                              <div class="form-group">
+                                <label for="{{ form.certification_type.id_for_label }}">Related Certification (Optional)</label>
+                                {{ form.certification_type }}
+                                {% if form.certification_type.errors %}<div class="invalid-feedback d-block">{% for error in form.certification_type.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                             </div>
+                              <div class="form-group">
+                                <label for="{{ form.instructor.id_for_label }}">Instructor (Optional)</label>
+                                {{ form.instructor }}
+                                {% if form.instructor.errors %}<div class="invalid-feedback d-block">{% for error in form.instructor.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                             </div>
+                             <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label for="{{ form.start_date.id_for_label }}">Start Date/Time (Optional)</label>
+                                    {{ form.start_date }}
+                                    {% if form.start_date.errors %}<div class="invalid-feedback d-block">{% for error in form.start_date.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label for="{{ form.end_date.id_for_label }}">End Date/Time (Optional)</label>
+                                    {{ form.end_date }}
+                                    {% if form.end_date.errors %}<div class="invalid-feedback d-block">{% for error in form.end_date.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                                </div>
+                             </div>
+                             <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label for="{{ form.location.id_for_label }}">Location (Optional)</label>
+                                    {{ form.location }}
+                                    {% if form.location.errors %}<div class="invalid-feedback d-block">{% for error in form.location.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                                </div>
+                                 <div class="form-group col-md-6">
+                                    <label for="{{ form.price.id_for_label }}">Price (Optional)</label>
+                                    {{ form.price }}
+                                    {% if form.price.errors %}<div class="invalid-feedback d-block">{% for error in form.price.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                                </div>
+                             </div>
+                             <div class="form-group">
+                                <label for="{{ form.delivery_method.id_for_label }}">Delivery Method (Optional)</label>
+                                {{ form.delivery_method }}
+                                {% if form.delivery_method.errors %}<div class="invalid-feedback d-block">{% for error in form.delivery_method.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                             </div>
+                             <div class="form-group"> {# Added cover image field #}
+                                <label for="{{ form.cover_image.id_for_label }}">Cover Image (Optional)</label>
+                                {{ form.cover_image }}
+                                {% if form.cover_image.errors %}<div class="invalid-feedback d-block">{% for error in form.cover_image.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                             </div>
+                             <div class="form-check">
+                                {{ form.is_active }}
+                                <label class="form-check-label" for="{{ form.is_active.id_for_label }}"> Is Active </label>
+                                {% if form.is_active.errors %}<div class="invalid-feedback d-block">{% for error in form.is_active.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                             </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary">Save Course</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="row my-4">
+            <div class="col-md-12">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <table class="table datatables" id="dataTable-courses">
+                            <thead>
+                                <tr>
+                                    <th><strong>ID</strong></th>
+                                    <th><strong>Name</strong></th>
+                                    <th><strong>Certification</strong></th>
+                                    <th><strong>Price</strong></th>
+                                    <th><strong>Delivery</strong></th>
+                                    <th><strong>Active</strong></th>
+                                    <th><strong>Action</strong></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for course in courses %}
+                                    <tr>
+                                        <td>{{ course.id }}</td>
+                                        <td>{{ course.name }}</td> {# Removed link from name #}
+                                        <td>{{ course.certification_type.name|default:"N/A" }}</td>
+                                        <td>${{ course.price|stringformat:".2f"|default:"Free" }}</td> {# Added formatting for price #}
+                                        <td>{{ course.get_delivery_method_display|default:"N/A" }}</td>
+                                        <td>
+                                            {% if course.is_active %}
+                                                <span class="fe fe-check-circle text-success"></span>
+                                            {% else %}
+                                                 <span class="fe fe-x-circle text-danger"></span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                             {# Added View Details button #}
+                                             <a href="{% url 'employee_course_detail' course.id %}" class="btn btn-sm btn-outline-info mr-1">View</a>
+                                             <a href="{% url 'edit_course' course.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                             {# Add delete button if needed #}
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="7" class="text-center">No courses found.</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_body_js %}
+ {{ block.super }}
+ <script src="{% static 'js/jquery.dataTables.min.js' %}"></script>
+ <script src="{% static 'js/dataTables.bootstrap4.min.js' %}"></script>
+ <script src="{% static 'js/select2.min.js' %}"></script>
+ <script src='{% static 'js/daterangepicker.js' %}'></script>
+ <script>
+   $('#dataTable-courses').DataTable({
+     autoWidth: true,
+     "lengthMenu": [ [10, 25, 50, -1], [10, 25, 50, "All"] ]
+   });
+   // Re-initialize select2 and datepickers if they are inside the modal after it's shown
+   $('#addCourseModal').on('shown.bs.modal', function (e) {
+        $(this).find('.select2').select2({
+            theme: 'bootstrap4',
+            dropdownParent: $(this).find('.modal-content'), // Important for positioning
+            placeholder: 'Select an option',
+             allowClear: true
+        });
+        $(this).find('.datetimes').daterangepicker({
+            timePicker: true,
+            singleDatePicker: true,
+            timePickerIncrement: 15,
+            autoUpdateInput: false, // Handle optional fields
+            locale: {
+                format: 'YYYY-MM-DD HH:mm',
+                cancelLabel: 'Clear'
+             }
+        });
+        // Handle applying the date or clearing it for optional fields
+        $(this).find('.datetimes').on('apply.daterangepicker', function(ev, picker) {
+            $(this).val(picker.startDate.format('YYYY-MM-DD HH:mm'));
+        });
+        $(this).find('.datetimes').on('cancel.daterangepicker', function(ev, picker) {
+            $(this).val('');
+        });
+   });
+ </script>
+{% endblock extra_body_js %}
