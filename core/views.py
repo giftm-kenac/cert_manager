@@ -1,22 +1,24 @@
 # core/views.py
+import openpyxl
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponseForbidden, HttpResponseNotFound, JsonResponse, HttpResponse
 from django.utils import timezone
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.urls import reverse
 import uuid
 
 from users.decorators import client_required, employee_required
-from .models import Certificate, CertificationType, TrainingCourse, Schedule
+from .models import Certificate, CertificationType, TrainingCourse, Schedule, Skill
 from users.models import CustomUser, ClientProfile
 
 from .forms import (
     CertificationTypeForm, TrainingCourseForm, IssueCertificateForm,
-    ScheduleForm, UpdateScheduleStatusForm, VerifyByIdForm
+    ScheduleForm, UpdateScheduleStatusForm, VerifyByIdForm, SkillForm, BulkClientUploadForm, BulkIssueCertificateForm
 )
-from .email_utils import send_certificate_issued_email_html, generate_certificate_image_with_details
+from .email_utils import send_certificate_issued_email_html, generate_certificate_image_with_details, \
+    send_employee_welcome_email_html, send_client_welcome_email_html
 
 
 @client_required
@@ -340,11 +342,115 @@ def edit_course_view(request, course_id):
 
 @employee_required
 def manage_clients_view(request):
+    upload_form = BulkClientUploadForm() # Initialize for GET and potential errors on POST
+    upload_errors = request.session.pop('bulk_upload_errors', None) # Get errors from previous attempt
+
+    if request.method == 'POST':
+        upload_form = BulkClientUploadForm(request.POST, request.FILES)
+        if upload_form.is_valid():
+            excel_file = request.FILES['excel_file']
+            try:
+                wb = openpyxl.load_workbook(excel_file)
+                sheet = wb.active
+                header = [cell.value for cell in sheet[1]]
+                expected_headers = ['Email', 'FirstName', 'LastName', 'Address', 'Country', 'DOB', 'Gender', 'PhoneNumber']
+                required_headers = ['Email', 'FirstName', 'LastName']
+
+                if not all(h in header for h in required_headers):
+                     messages.error(request, f"Excel file missing required columns: {', '.join(required_headers)}")
+                     return redirect('manage_clients')
+
+                col_map = {name: i for i, name in enumerate(header)}
+                created_count = 0
+                skipped_count = 0
+                error_list = []
+
+                with transaction.atomic():
+                    for row_idx in range(2, sheet.max_row + 1):
+                        row = [cell.value for cell in sheet[row_idx]]
+                        email = row[col_map['Email']]
+                        first_name = row[col_map['FirstName']]
+                        last_name = row[col_map['LastName']]
+
+                        addr = row[col_map.get('Address')] if 'Address' in col_map else None
+                        country = row[col_map.get('Country')] if 'Country' in col_map else None
+                        dob = row[col_map.get('DOB')] if 'DOB' in col_map else None
+                        gender = row[col_map.get('Gender')] if 'Gender' in col_map else None
+                        phone = row[col_map.get('PhoneNumber')] if 'PhoneNumber' in col_map else None
+                        org = row[col_map.get('Organization')] if 'Organization' in col_map else None
+
+                        if not email or not first_name or not last_name:
+                            error_list.append(f"Row {row_idx}: Missing required data (Email, FirstName, LastName).")
+                            skipped_count += 1
+                            continue
+
+                        if CustomUser.objects.filter(email__iexact=email).exists():
+                            error_list.append(f"Row {row_idx}: Email '{email}' already exists.")
+                            skipped_count += 1
+                            continue
+
+                        try:
+                            password = CustomUser.objects.make_random_password()
+                            user = CustomUser.objects.create_user(
+                                email=email,
+                                first_name=str(first_name),
+                                last_name=str(last_name),
+                                password=password,
+                                phone_number=str(phone) if phone else None,
+                                is_employee=False,
+                                is_verified=False # Start as unverified
+                            )
+                            verification_code = user.generate_verification_code() # Generate code before sending email
+
+                            ClientProfile.objects.create(
+                                user=user,
+                                organization=str(org) if org else None,
+                                address=str(addr) if addr else None,
+                                city=row[col_map.get('City')] if 'City' in col_map else None,
+                                country=str(country) if country else None,
+                                date_of_birth=dob, # TODO: Add date parsing/validation
+                                gender=str(gender) if gender else None,
+                            )
+
+                            # --- Send Client Welcome Email ---
+                            login_url = request.build_absolute_uri(reverse('user_login'))
+                            send_client_welcome_email_html(user.email, user.full_name, password, verification_code, login_url)
+                            # --- End Send Client Welcome Email ---
+
+                            created_count += 1
+
+                        except Exception as e:
+                            error_list.append(f"Row {row_idx} (Email: {email}): Error - {e}")
+                            skipped_count += 1
+                            print(f"Error processing row {row_idx}: {e}")
+
+
+                if created_count > 0:
+                    messages.success(request, f"Successfully created {created_count} client accounts. Welcome emails sent.")
+                if skipped_count > 0:
+                    messages.warning(request, f"Skipped {skipped_count} rows due to errors.")
+                if error_list:
+                    request.session['bulk_upload_errors'] = error_list[:10]
+                    messages.error(request, "Some rows could not be processed.")
+
+                return redirect('manage_clients')
+
+            except Exception as e:
+                messages.error(request, f"Error processing Excel file: {e}")
+
+        else: # Form not valid
+            messages.error(request, "Invalid file submitted. Please upload a valid .xlsx file.")
+            # Fall through to render the page with the invalid form
+
+    # GET request handling or after failed POST validation
     clients = ClientProfile.objects.select_related('user').all().order_by('user__last_name', 'user__first_name')
     context = {
         'clients': clients,
+        'upload_form': upload_form, # Pass the upload form (might contain errors)
+        'upload_errors': upload_errors # Pass errors from session if any
     }
     return render(request, 'core/manage_clients.html', context)
+
 
 @employee_required
 def issued_certificates_view(request):
@@ -407,4 +513,175 @@ def download_certificate_image_view(request, certificate_id):
             return redirect('issued_certificates')
          else:
             return redirect('my_certificates')
+
+
+@employee_required
+def manage_skills_view(request):
+    if request.method == 'POST':
+        form = SkillForm(request.POST)
+        if form.is_valid():
+            try:
+                form.save()
+                messages.success(request, "Skill added successfully.")
+                return redirect('manage_skills') # Redirect back to the same page
+            except IntegrityError: # Handle case where skill name already exists
+                messages.error(request, f"Skill '{form.cleaned_data['name']}' already exists.")
+            except Exception as e:
+                 messages.error(request, f"Failed to add skill: {e}")
+        else:
+            messages.error(request, "Please correct the error below.")
+    else:
+        form = SkillForm() # Empty form for GET request (for the modal/add section)
+
+    skills = Skill.objects.all()
+    context = {
+        'form': form,
+        'skills': skills,
+    }
+    return render(request, 'core/manage_skills.html', context)
+
+
+@employee_required
+def edit_skill_view(request, skill_id):
+    skill = get_object_or_404(Skill, pk=skill_id)
+    if request.method == 'POST':
+        form = SkillForm(request.POST, instance=skill)
+        if form.is_valid():
+            try:
+                form.save()
+                messages.success(request, f"Skill '{skill.name}' updated successfully.")
+                return redirect('manage_skills')
+            except IntegrityError:
+                 messages.error(request, f"A skill with the name '{form.cleaned_data['name']}' already exists.")
+            except Exception as e:
+                 messages.error(request, f"Failed to update skill: {e}")
+        else:
+            messages.error(request, "Please correct the error below.")
+    else:
+        form = SkillForm(instance=skill)
+
+    context = {
+        'form': form,
+        'skill': skill,
+    }
+    return render(request, 'core/edit_skill.html', context)
+
+@employee_required
+def delete_skill_view(request, skill_id):
+    skill = get_object_or_404(Skill, pk=skill_id)
+    # Only allow POST requests for deletion to prevent accidental deletion via GET
+    if request.method == 'POST':
+        try:
+            skill_name = skill.name
+            skill.delete()
+            messages.success(request, f"Skill '{skill_name}' deleted successfully.")
+        except Exception as e:
+            messages.error(request, f"Could not delete skill '{skill.name}'. It might be in use. Error: {e}")
+        return redirect('manage_skills')
+    else:
+        # If accessed via GET, redirect away or show method not allowed
+        messages.warning(request, "Deletion must be done via POST request.")
+        return redirect('manage_skills')
+
+
+@employee_required
+def bulk_issue_certificates_view(request):
+    if request.method == 'POST':
+        form = BulkIssueCertificateForm(request.POST, request.FILES)
+        if form.is_valid():
+            excel_file = request.FILES['email_file']
+            certification_type = form.cleaned_data['certification_type']
+            issue_date = form.cleaned_data.get('issue_date') or timezone.now().date()
+
+            try:
+                wb = openpyxl.load_workbook(excel_file)
+                sheet = wb.active
+                header = [cell.value for cell in sheet[1]]
+                if 'Email' not in header:
+                    messages.error(request, "Excel file must contain a column named 'Email'.")
+                    return redirect('bulk_issue_certificates')
+
+                email_col_index = header.index('Email')
+                issued_count = 0
+                skipped_count = 0
+                error_list = []
+
+                with transaction.atomic():
+                    for row_idx in range(2, sheet.max_row + 1):
+                        row = [cell.value for cell in sheet[row_idx]]
+                        email = row[email_col_index]
+
+                        if not email:
+                            error_list.append(f"Row {row_idx}: Missing email address.")
+                            skipped_count += 1
+                            continue
+
+                        try:
+                            client = CustomUser.objects.get(email__iexact=email, is_employee=False)
+                            if not client.is_verified:
+                                error_list.append(f"Row {row_idx}: Client '{email}' is not verified.")
+                                skipped_count += 1
+                                continue
+
+                            if Certificate.objects.filter(client=client, certification_type=certification_type).exists():
+                                error_list.append(f"Row {row_idx}: Client '{email}' already has this certificate.")
+                                skipped_count += 1
+                                continue
+
+                            # Create and save certificate
+                            certificate = Certificate(
+                                client=client,
+                                certification_type=certification_type,
+                                issue_date=issue_date
+                            )
+                            certificate.save() # Save to get ID for image/email
+
+                            # Generate image (optional - can be slow for bulk)
+                            # try:
+                            #     generate_certificate_image_with_details(certificate)
+                            # except Exception as img_err:
+                            #     error_list.append(f"Row {row_idx}: Issued cert for '{email}', but image failed: {img_err}")
+
+                            # Send notification email
+                            verification_url = request.build_absolute_uri(certificate.get_absolute_url())
+                            send_certificate_issued_email_html(
+                                to_email=client.email,
+                                fullname=client.full_name,
+                                certificate_name=certification_type.name,
+                                verification_url=verification_url
+                            )
+                            issued_count += 1
+
+                        except CustomUser.DoesNotExist:
+                            error_list.append(f"Row {row_idx}: Client with email '{email}' not found.")
+                            skipped_count += 1
+                        except Exception as e:
+                            error_list.append(f"Row {row_idx} (Email: {email}): Error - {e}")
+                            skipped_count += 1
+                            print(f"Error processing row {row_idx}: {e}")
+
+                if issued_count > 0:
+                    messages.success(request, f"Successfully issued {issued_count} certificates. Emails sent.")
+                if skipped_count > 0:
+                    messages.warning(request, f"Skipped {skipped_count} rows.")
+                if error_list:
+                    request.session['bulk_issue_errors'] = error_list[:10]
+                    messages.error(request, "Some rows could not be processed.")
+
+                return redirect('bulk_issue_certificates')
+
+            except Exception as e:
+                messages.error(request, f"Error processing Excel file: {e}")
+        else:
+            messages.error(request, "Invalid form submission. Please check the fields.")
+
+    else: # GET request
+        form = BulkIssueCertificateForm()
+
+    upload_errors = request.session.pop('bulk_issue_errors', None)
+    context = {
+        'form': form,
+        'upload_errors': upload_errors
+    }
+    return render(request, 'core/bulk_issue_certificates.html', context)
 

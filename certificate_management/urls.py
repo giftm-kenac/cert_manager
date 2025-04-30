@@ -45,6 +45,11 @@ urlpatterns = [
     path('employee/courses/<int:course_id>/details/', core_views.employee_course_detail_view,
          name='employee_course_detail'),
     path('employee/issue-certificate/', core_views.issue_certificate_view, name='issue_certificate'),
+    path('employee/bulk-issue-certificates/', core_views.bulk_issue_certificates_view, name='bulk_issue_certificates'),
+    path('employee/skills/', core_views.manage_skills_view, name='manage_skills'),
+    path('employee/skills/<int:skill_id>/edit/', core_views.edit_skill_view, name='edit_skill'),
+    # <-- New Edit Skill URL
+    path('employee/skills/<int:skill_id>/delete/', core_views.delete_skill_view, name='delete_skill'),
     path('employee/issued-certificates/', core_views.issued_certificates_view, name='issued_certificates'),
 
     # --- Public Verification URL (from core.views) ---

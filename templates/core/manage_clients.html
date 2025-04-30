@@ -16,12 +16,61 @@
                 <h2 class="h3 page-title">Clients</h2>
                 <p class="card-text">List of all registered clients.</p>
              </div>
-          
              <div class="col-auto">
-                 <button type="button" class="btn btn-primary">Action</button>
+                 {# Button to trigger the modal #}
+                 <button type="button" class="btn btn-success" data-toggle="modal" data-target="#bulkUploadModal">
+                    <span class="fe fe-upload-cloud fe-16 mr-2"></span>Bulk Upload Clients
+                 </button>
              </div>
         </div>
 
+        <div class="modal fade" id="bulkUploadModal" tabindex="-1" role="dialog" aria-labelledby="bulkUploadModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="bulkUploadModalLabel">Bulk Upload Clients from Excel</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    {# Form targets the current page (manage_clients) #}
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="modal-body">
+                            {% if upload_form.non_field_errors %}
+                                <div class="alert alert-danger" role="alert">
+                                    {% for error in upload_form.non_field_errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-group">
+                                <label for="{{ upload_form.excel_file.id_for_label }}">{{ upload_form.excel_file.label }}</label>
+                                {{ upload_form.excel_file }}
+                                {% if upload_form.excel_file.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in upload_form.excel_file.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">{{ upload_form.excel_file.help_text }}</small>
+                            </div>
+                            {# Display errors from previous attempt if they exist #}
+                            {% if upload_errors %}
+                                <hr>
+                                <h6 class="text-danger mt-2">Previous Upload Errors (showing first 10):</h6>
+                                <ul class="list-group list-group-flush small" style="max-height: 150px; overflow-y: auto;">
+                                    {% for error in upload_errors %}
+                                        <li class="list-group-item text-danger py-1">{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary">Upload and Process</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
         <div class="row my-4">
             <div class="col-md-12">
                 <div class="card shadow">
@@ -61,7 +110,7 @@
                                                  <span class="badge badge-danger">Inactive</span>
                                             {% endif %}
                                         </td>
-                                        <td> {# Corrected URL name and parameter #}
+                                        <td>
                                             <a href="{% url 'client_detail' profile.user.id %}" class="btn btn-sm btn-outline-primary">View Details</a>
                                         </td>
                                     </tr>

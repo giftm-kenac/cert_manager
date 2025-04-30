@@ -1,0 +1,100 @@
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block title %}Bulk Issue Certificates{% endblock title %}
+
+{% block extra_head_css %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/select2.css' %}">
+    <link rel="stylesheet" href="{% static 'css/daterangepicker.css' %}">
+{% endblock extra_head_css %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <h2 class="h3 mb-3 page-title">Bulk Issue Certificates</h2>
+        <div class="card shadow">
+            <div class="card-body">
+                <p>Select a certification type and upload an Excel (.xlsx) file containing a list of client emails to issue certificates to.</p>
+                <p class="small text-muted">The Excel file must have a header row, and one column must be named exactly "Email". Only verified clients will receive certificates.</p>
+
+                <form method="post" enctype="multipart/form-data" class="mt-4">
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger" role="alert">
+                            {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <div class="form-group">
+                        <label for="{{ form.certification_type.id_for_label }}">{{ form.certification_type.label }}</label>
+                        {{ form.certification_type }}
+                        {% if form.certification_type.errors %}<div class="invalid-feedback d-block">{% for error in form.certification_type.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                    </div>
+
+                     <div class="form-group">
+                        <label for="{{ form.issue_date.id_for_label }}">Issue Date (Optional)</label>
+                        {{ form.issue_date }}
+                        {% if form.issue_date.errors %}<div class="invalid-feedback d-block">{% for error in form.issue_date.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                        <small class="form-text text-muted">{{ form.issue_date.help_text }}</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ form.email_file.id_for_label }}">{{ form.email_file.label }}</label>
+                        {{ form.email_file }}
+                         {% if form.email_file.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.email_file.errors %}{{ error }}{% endfor %}
+                            </div>
+                         {% endif %}
+                         <small class="form-text text-muted">{{ form.email_file.help_text }}</small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Upload and Issue Certificates</button>
+                </form>
+
+                {# Display errors from the last upload attempt #}
+                {% if upload_errors %}
+                    <hr>
+                    <h5 class="text-danger mt-4">Processing Errors (showing first 10):</h5>
+                    <ul class="list-group list-group-flush small">
+                        {% for error in upload_errors %}
+                            <li class="list-group-item text-danger py-1">{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_body_js %}
+ {{ block.super }}
+ <script src="{% static 'js/select2.min.js' %}"></script>
+ <script src='{% static 'js/daterangepicker.js' %}'></script>
+ <script>
+    $(document).ready(function() {
+        // Initialize select2
+        $('#{{ form.certification_type.id_for_label }}').select2({ theme: 'bootstrap4', placeholder: 'Select a type' });
+        // Initialize datepicker
+        $('#{{ form.issue_date.id_for_label }}').daterangepicker({
+            singleDatePicker: true,
+            showDropdowns: true,
+            autoUpdateInput: false, // Important for optional fields
+            locale: {
+                format: 'YYYY-MM-DD',
+                cancelLabel: 'Clear'
+             }
+        });
+        // Handle applying the date or clearing it for optional fields
+        $('#{{ form.issue_date.id_for_label }}').on('apply.daterangepicker', function(ev, picker) {
+            $(this).val(picker.startDate.format('YYYY-MM-DD'));
+        });
+        $('#{{ form.issue_date.id_for_label }}').on('cancel.daterangepicker', function(ev, picker) {
+            $(this).val('');
+        });
+    });
+ </script>
+{% endblock extra_body_js %}

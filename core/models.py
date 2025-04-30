@@ -6,6 +6,14 @@ from django.utils import timezone
 import uuid
 from users.models import TimeStampedModel
 
+class Skill(TimeStampedModel):
+    name = models.CharField(max_length=150, unique=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
 
 class CertificationType(TimeStampedModel):
     name = models.CharField(max_length=255, unique=True)
@@ -20,6 +28,8 @@ class CertificationType(TimeStampedModel):
     duration_days = models.PositiveIntegerField(blank=True, null=True,
                                                 help_text="Optional: Validity duration in days from issue date.")
     is_active = models.BooleanField(default=True)
+    earning_criteria = models.TextField(blank=True, null=True, help_text="Describe how this certificate is earned (e.g., exam details, course completion).")
+    skills = models.ManyToManyField(Skill, blank=True, related_name="certification_types")
 
     # Recipient Name
     name_x = models.PositiveIntegerField(default=50, help_text="X coordinate for recipient name")

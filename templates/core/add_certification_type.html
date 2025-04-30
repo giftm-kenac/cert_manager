@@ -9,12 +9,13 @@
         .coordinate-group label { margin-bottom: 0.1rem; font-size: 0.8rem; color: #6c757d;}
         .coordinate-group .form-control-sm { padding: 0.25rem 0.5rem; font-size: 0.875rem;}
         .coordinate-group .form-row { margin-bottom: 0.5rem; }
+        .skills-checkbox-list { max-height: 150px; overflow-y: auto; border: 1px solid #ced4da; padding: .375rem .75rem; border-radius: .25rem; }
+        .skills-checkbox-list .form-check { margin-bottom: 0.25rem; }
     </style>
 {% endblock extra_head_css %}
 
 {% block content %}
 <div class="row justify-content-center">
-    {# Changed column class to col-12 to make it full width #}
     <div class="col-12">
         <h2 class="h3 mb-3 page-title">Add New Certification Type</h2>
         <div class="card shadow">
@@ -52,6 +53,23 @@
                         {{ form.duration_days }}
                         {% if form.duration_days.errors %}<div class="invalid-feedback d-block">{% for error in form.duration_days.errors %}{{ error }}{% endfor %}</div>{% endif %}
                      </div>
+
+                     <div class="form-group">
+                        <label for="{{ form.earning_criteria.id_for_label }}">Earning Criteria</label>
+                        {{ form.earning_criteria }}
+                        {% if form.earning_criteria.errors %}<div class="invalid-feedback d-block">{% for error in form.earning_criteria.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                        <small class="form-text text-muted">{{ form.earning_criteria.help_text }}</small>
+                     </div>
+                     <div class="form-group">
+                        <label for="{{ form.skills.id_for_label }}">Related Skills</label>
+                        <div class="skills-checkbox-list">
+                            {{ form.skills }}
+                        </div>
+                        {% if form.skills.errors %}<div class="invalid-feedback d-block">{% for error in form.skills.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                        <small class="form-text text-muted">{{ form.skills.help_text }}</small>
+                        <a href="{% url 'manage_skills' %}" class="small">Manage Skills</a>
+                     </div>
+
                      <div class="form-check mb-3">
                         {{ form.is_active }}
                         <label class="form-check-label" for="{{ form.is_active.id_for_label }}"> Is Active </label>
@@ -66,26 +84,10 @@
                     <fieldset class="form-group coordinate-group border p-3 mb-3">
                         <legend class="w-auto px-2 h6">Recipient Name</legend>
                         <div class="form-row">
-                            <div class="col-md-3">
-                                <label for="{{ form.name_x.id_for_label }}">X Pos</label>
-                                {{ form.name_x }}
-                                {% if form.name_x.errors %}<div class="invalid-feedback d-block">{% for error in form.name_x.errors %}{{ error }}{% endfor %}</div>{% endif %}
-                            </div>
-                            <div class="col-md-3">
-                                <label for="{{ form.name_y.id_for_label }}">Y Pos</label>
-                                {{ form.name_y }}
-                                {% if form.name_y.errors %}<div class="invalid-feedback d-block">{% for error in form.name_y.errors %}{{ error }}{% endfor %}</div>{% endif %}
-                            </div>
-                            <div class="col-md-3">
-                                <label for="{{ form.name_font_size.id_for_label }}">Font Size</label>
-                                {{ form.name_font_size }}
-                                {% if form.name_font_size.errors %}<div class="invalid-feedback d-block">{% for error in form.name_font_size.errors %}{{ error }}{% endfor %}</div>{% endif %}
-                            </div>
-                             <div class="col-md-3">
-                                <label for="{{ form.name_color.id_for_label }}">Color</label>
-                                {{ form.name_color }}
-                                {% if form.name_color.errors %}<div class="invalid-feedback d-block">{% for error in form.name_color.errors %}{{ error }}{% endfor %}</div>{% endif %}
-                            </div>
+                            <div class="col-md-3"><label for="{{ form.name_x.id_for_label }}">X Pos</label>{{ form.name_x }} {% if form.name_x.errors %}<div class="invalid-feedback d-block">{% for error in form.name_x.errors %}{{ error }}{% endfor %}</div>{% endif %}</div>
+                            <div class="col-md-3"><label for="{{ form.name_y.id_for_label }}">Y Pos</label>{{ form.name_y }} {% if form.name_y.errors %}<div class="invalid-feedback d-block">{% for error in form.name_y.errors %}{{ error }}{% endfor %}</div>{% endif %}</div>
+                            <div class="col-md-3"><label for="{{ form.name_font_size.id_for_label }}">Font Size</label>{{ form.name_font_size }} {% if form.name_font_size.errors %}<div class="invalid-feedback d-block">{% for error in form.name_font_size.errors %}{{ error }}{% endfor %}</div>{% endif %}</div>
+                            <div class="col-md-3"><label for="{{ form.name_color.id_for_label }}">Color</label>{{ form.name_color }} {% if form.name_color.errors %}<div class="invalid-feedback d-block">{% for error in form.name_color.errors %}{{ error }}{% endfor %}</div>{% endif %}</div>
                         </div>
                     </fieldset>
 
