@@ -24,8 +24,8 @@ urlpatterns = [
     path('my-schedule/', core_views.my_schedule_view, name='my_schedule'),
     path('courses/', core_views.available_courses_view, name='available_courses'),
     path('courses/<int:course_id>/', core_views.course_detail_view, name='course_detail'),
-    path('certificate/<uuid:certificate_id>/download/', core_views.download_certificate_image_view,
-         name='download_certificate'),
+    path('certificate/<uuid:certificate_id>/download-image/', core_views.download_certificate_image_view, name='download_certificate_image'),
+    path('certificate/<uuid:certificate_id>/download-pdf/', core_views.download_certificate_pdf_view, name='download_certificate_pdf'),
 
 
     # --- Employee/Admin URLs ---

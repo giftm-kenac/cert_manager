@@ -17,8 +17,11 @@
                 <p class="card-text">List of all certificates issued by the system.</p>
              </div>
              <div class="col-auto">
+                  <a href="{% url 'bulk_issue_certificates' %}" class="btn btn-success mr-2">
+                    <span class="fe fe-file-text fe-16 mr-2"></span>Bulk Issue
+                 </a>
                  <a href="{% url 'issue_certificate' %}" class="btn btn-primary">
-                    <span class="fe fe-plus fe-16 mr-2"></span>Issue New Certificate
+                    <span class="fe fe-plus fe-16 mr-2"></span>Issue Single Certificate
                  </a>
              </div>
         </div>
@@ -43,7 +46,7 @@
                                 {% for cert in certificates %}
                                     <tr>
                                         <td><small>{{ cert.id }}</small></td>
-                                        <td>{{ cert.client.full_name }}</td>
+                                        <td><a href="{% url 'client_detail' cert.client.id %}">{{ cert.client.full_name }}</a></td>
                                         <td>{{ cert.certification_type.name }}</td>
                                         <td>{{ cert.issue_date|date:"Y-m-d" }}</td>
                                         <td>{{ cert.expiry_date|date:"Y-m-d"|default:"N/A" }}</td>
@@ -58,9 +61,11 @@
                                              <a href="{{ cert.get_absolute_url }}" target="_blank" class="btn btn-sm btn-outline-info mr-1" title="Verify Publicly">
                                                 <span class="fe fe-eye"></span>
                                              </a>
-                                             {# Download Button #}
-                                             <a href="{% url 'download_certificate' cert.id %}" class="btn btn-sm btn-outline-secondary" title="Download Certificate Image">
-                                                 <span class="fe fe-download"></span>
+                                             <a href="{% url 'download_certificate_image' cert.id %}" class="btn btn-sm btn-outline-secondary mr-1" title="Download Image">
+                                                 <span class="fe fe-image"></span>
+                                             </a>
+                                             <a href="{% url 'download_certificate_pdf' cert.id %}" class="btn btn-sm btn-outline-danger" title="Download PDF">
+                                                 <span class="fe fe-file-text"></span> {# <-- PDF Button #}
                                              </a>
                                              {# Add Revoke button if needed #}
                                         </td>

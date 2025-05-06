@@ -18,7 +18,7 @@ from .forms import (
     ScheduleForm, UpdateScheduleStatusForm, VerifyByIdForm, SkillForm, BulkClientUploadForm, BulkIssueCertificateForm
 )
 from .email_utils import send_certificate_issued_email_html, generate_certificate_image_with_details, \
-    send_employee_welcome_email_html, send_client_welcome_email_html
+    send_employee_welcome_email_html, render_certificate_to_pdf
 
 
 @client_required
@@ -37,17 +37,21 @@ def client_dashboard_view(request):
     }
     return render(request, 'core/client_dashboard.html', context)
 
+
 @client_required
 def my_certificates_view(request):
-    certificates = Certificate.objects.filter(client=request.user).select_related('certification_type').order_by('-issue_date')
+    certificates = Certificate.objects.filter(client=request.user).select_related('certification_type').order_by(
+        '-issue_date')
     context = {
         'certificates': certificates
     }
     return render(request, 'core/my_certificates.html', context)
 
+
 @client_required
 def my_schedule_view(request):
-    schedules = Schedule.objects.filter(client=request.user).select_related('course').order_by('-event_datetime', '-created_at')
+    schedules = Schedule.objects.filter(client=request.user).select_related('course').order_by('-event_datetime',
+                                                                                               '-created_at')
     context = {
         'schedules': schedules
     }
@@ -56,33 +60,36 @@ def my_schedule_view(request):
 
 @client_required
 def available_courses_view(request):
-    courses = TrainingCourse.objects.filter(is_active=True).select_related('certification_type').order_by('start_date', 'name')
+    courses = TrainingCourse.objects.filter(is_active=True).select_related('certification_type').order_by('start_date',
+                                                                                                          'name')
     context = {
         'courses': courses
     }
     return render(request, 'core/available_courses.html', context)
 
+
 @client_required
 def course_detail_view(request, course_id):
     course = get_object_or_404(TrainingCourse, pk=course_id, is_active=True)
-    existing_schedule = Schedule.objects.filter(client=request.user, course=course).exclude(status__icontains='CANCELLED').first()
+    existing_schedule = Schedule.objects.filter(client=request.user, course=course).exclude(
+        status__icontains='CANCELLED').first()
     schedule_form = ScheduleForm()
 
     if request.method == 'POST':
         if 'cancel_schedule' in request.POST and existing_schedule:
-             if existing_schedule.status in ['REQUESTED', 'SCHEDULED']:
-                 existing_schedule.status = 'CANCELLED_BY_USER'
-                 existing_schedule.save(update_fields=['status', 'updated_at'])
-                 messages.info(request, f"Your schedule request for {course.name} has been cancelled.")
-             else:
-                 messages.warning(request, "This schedule cannot be cancelled.")
-             return redirect('course_detail', course_id=course.id)
+            if existing_schedule.status in ['REQUESTED', 'SCHEDULED']:
+                existing_schedule.status = 'CANCELLED_BY_USER'
+                existing_schedule.save(update_fields=['status', 'updated_at'])
+                messages.info(request, f"Your schedule request for {course.name} has been cancelled.")
+            else:
+                messages.warning(request, "This schedule cannot be cancelled.")
+            return redirect('course_detail', course_id=course.id)
         else:
             schedule_form = ScheduleForm(request.POST)
             if schedule_form.is_valid():
-                 if existing_schedule:
-                     messages.warning(request, f"You already have an active schedule for {course.name}.")
-                 else:
+                if existing_schedule:
+                    messages.warning(request, f"You already have an active schedule for {course.name}.")
+                else:
                     event_dt = schedule_form.cleaned_data['event_datetime']
                     notes = schedule_form.cleaned_data.get('notes')
 
@@ -96,7 +103,8 @@ def course_detail_view(request, course_id):
                             notes=notes,
                             status='REQUESTED'
                         )
-                        messages.success(request, f"Your request to schedule for {course.name} on {event_dt.strftime('%Y-%m-%d %H:%M')} has been submitted.")
+                        messages.success(request,
+                                         f"Your request to schedule for {course.name} on {event_dt.strftime('%Y-%m-%d %H:%M')} has been submitted.")
                         return redirect('course_detail', course_id=course.id)
 
     context = {
@@ -144,9 +152,9 @@ def verify_certificate_by_id_input_view(request):
                 not_found = True
                 certificate = None
             except ValueError:
-                 messages.error(request, "Invalid Certificate ID format.")
-                 not_found = True
-                 certificate = None
+                messages.error(request, "Invalid Certificate ID format.")
+                not_found = True
+                certificate = None
 
     context = {
         'form': form,
@@ -169,6 +177,7 @@ def employee_dashboard_view(request):
     }
     return render(request, 'core/employee_dashboard.html', context)
 
+
 @employee_required
 def manage_certification_types_view(request):
     # This view now only displays the list
@@ -177,6 +186,7 @@ def manage_certification_types_view(request):
         'certification_types': types,
     }
     return render(request, 'core/manage_certification_types.html', context)
+
 
 @employee_required
 def add_certification_type_view(request):
@@ -196,6 +206,7 @@ def add_certification_type_view(request):
         'form': form,
     }
     return render(request, 'core/add_certification_type.html', context)
+
 
 @employee_required
 def edit_certification_type_view(request, certification_type_id):
@@ -238,6 +249,7 @@ def manage_courses_view(request):
     }
     return render(request, 'core/manage_courses.html', context)
 
+
 @employee_required
 @transaction.atomic
 def issue_certificate_view(request):
@@ -256,24 +268,31 @@ def issue_certificate_view(request):
                         certification_type=certification_type,
                         issue_date=form.cleaned_data.get('issue_date') or timezone.now().date()
                     )
-                    certificate.save()
+                    certificate.save() # Save to get ID
 
+                    # --- Generate and Save Certificate Image ---
                     try:
-                        generate_certificate_image_with_details(certificate)
+                        generate_certificate_image_with_details(certificate) # This now saves the image field
                     except Exception as img_err:
+                         print(f"ERROR generating image for cert {certificate.id}: {img_err}")
                          messages.error(request, f"Certificate issued, but failed to generate image: {img_err}")
+                         # Continue to send email even if image fails? Or rollback? Your choice.
+                    # --- End Image Generation ---
 
+                    # Send Certificate Issued Email (now includes PDF attachment logic)
                     verification_url = request.build_absolute_uri(certificate.get_absolute_url())
                     send_certificate_issued_email_html(
                         to_email=client.email,
                         fullname=client.full_name,
                         certificate_name=certification_type.name,
-                        verification_url=verification_url
+                        verification_url=verification_url,
+                        certificate_instance=certificate # Pass instance for PDF generation
                     )
 
                     messages.success(request, f"Certificate '{certification_type.name}' issued successfully to {client.full_name}.")
                     return redirect('issue_certificate')
                 except Exception as e:
+                    print(f"ERROR issuing certificate: {e}")
                     messages.error(request, f"Failed to issue certificate: {e}")
         else:
              messages.error(request, "Please correct the errors below.")
@@ -284,6 +303,7 @@ def issue_certificate_view(request):
         'form': form,
     }
     return render(request, 'core/issue_certificate.html', context)
+
 
 @employee_required
 def employee_course_detail_view(request, course_id):
@@ -304,7 +324,7 @@ def employee_course_detail_view(request, course_id):
             except Schedule.DoesNotExist:
                 messages.error(request, "Schedule not found.")
             except Exception as e:
-                 messages.error(request, f"Error updating status: {e}")
+                messages.error(request, f"Error updating status: {e}")
         else:
             messages.error(request, "Invalid status update request.")
 
@@ -340,10 +360,11 @@ def edit_course_view(request, course_id):
     }
     return render(request, 'core/edit_course.html', context)
 
+
 @employee_required
 def manage_clients_view(request):
-    upload_form = BulkClientUploadForm() # Initialize for GET and potential errors on POST
-    upload_errors = request.session.pop('bulk_upload_errors', None) # Get errors from previous attempt
+    upload_form = BulkClientUploadForm()  # Initialize for GET and potential errors on POST
+    upload_errors = request.session.pop('bulk_upload_errors', None)  # Get errors from previous attempt
 
     if request.method == 'POST':
         upload_form = BulkClientUploadForm(request.POST, request.FILES)
@@ -353,12 +374,13 @@ def manage_clients_view(request):
                 wb = openpyxl.load_workbook(excel_file)
                 sheet = wb.active
                 header = [cell.value for cell in sheet[1]]
-                expected_headers = ['Email', 'FirstName', 'LastName', 'Address', 'Country', 'DOB', 'Gender', 'PhoneNumber']
+                expected_headers = ['Email', 'FirstName', 'LastName', 'Address', 'Country', 'DOB', 'Gender',
+                                    'PhoneNumber']
                 required_headers = ['Email', 'FirstName', 'LastName']
 
                 if not all(h in header for h in required_headers):
-                     messages.error(request, f"Excel file missing required columns: {', '.join(required_headers)}")
-                     return redirect('manage_clients')
+                    messages.error(request, f"Excel file missing required columns: {', '.join(required_headers)}")
+                    return redirect('manage_clients')
 
                 col_map = {name: i for i, name in enumerate(header)}
                 created_count = 0
@@ -398,9 +420,9 @@ def manage_clients_view(request):
                                 password=password,
                                 phone_number=str(phone) if phone else None,
                                 is_employee=False,
-                                is_verified=False # Start as unverified
+                                is_verified=False  # Start as unverified
                             )
-                            verification_code = user.generate_verification_code() # Generate code before sending email
+                            verification_code = user.generate_verification_code()  # Generate code before sending email
 
                             ClientProfile.objects.create(
                                 user=user,
@@ -408,13 +430,14 @@ def manage_clients_view(request):
                                 address=str(addr) if addr else None,
                                 city=row[col_map.get('City')] if 'City' in col_map else None,
                                 country=str(country) if country else None,
-                                date_of_birth=dob, # TODO: Add date parsing/validation
+                                date_of_birth=dob,  # TODO: Add date parsing/validation
                                 gender=str(gender) if gender else None,
                             )
 
                             # --- Send Client Welcome Email ---
                             login_url = request.build_absolute_uri(reverse('user_login'))
-                            send_client_welcome_email_html(user.email, user.full_name, password, verification_code, login_url)
+                            send_client_welcome_email_html(user.email, user.full_name, password, verification_code,
+                                                           login_url)
                             # --- End Send Client Welcome Email ---
 
                             created_count += 1
@@ -424,9 +447,9 @@ def manage_clients_view(request):
                             skipped_count += 1
                             print(f"Error processing row {row_idx}: {e}")
 
-
                 if created_count > 0:
-                    messages.success(request, f"Successfully created {created_count} client accounts. Welcome emails sent.")
+                    messages.success(request,
+                                     f"Successfully created {created_count} client accounts. Welcome emails sent.")
                 if skipped_count > 0:
                     messages.warning(request, f"Skipped {skipped_count} rows due to errors.")
                 if error_list:
@@ -438,7 +461,7 @@ def manage_clients_view(request):
             except Exception as e:
                 messages.error(request, f"Error processing Excel file: {e}")
 
-        else: # Form not valid
+        else:  # Form not valid
             messages.error(request, "Invalid file submitted. Please upload a valid .xlsx file.")
             # Fall through to render the page with the invalid form
 
@@ -446,8 +469,8 @@ def manage_clients_view(request):
     clients = ClientProfile.objects.select_related('user').all().order_by('user__last_name', 'user__first_name')
     context = {
         'clients': clients,
-        'upload_form': upload_form, # Pass the upload form (might contain errors)
-        'upload_errors': upload_errors # Pass errors from session if any
+        'upload_form': upload_form,  # Pass the upload form (might contain errors)
+        'upload_errors': upload_errors  # Pass errors from session if any
     }
     return render(request, 'core/manage_clients.html', context)
 
@@ -462,6 +485,7 @@ def issued_certificates_view(request):
     }
     return render(request, 'core/issued_certificates.html', context)
 
+
 @employee_required
 def client_detail_view(request, client_user_id):
     client_user = get_object_or_404(CustomUser, pk=client_user_id, is_employee=False)
@@ -470,7 +494,8 @@ def client_detail_view(request, client_user_id):
     except ClientProfile.DoesNotExist:
         client_profile = None
 
-    client_certificates = Certificate.objects.filter(client=client_user).select_related('certification_type').order_by('-issue_date')
+    client_certificates = Certificate.objects.filter(client=client_user).select_related('certification_type').order_by(
+        '-issue_date')
     client_schedules = Schedule.objects.filter(client=client_user).select_related('course').order_by('-created_at')
 
     context = {
@@ -497,7 +522,7 @@ def download_certificate_image_view(request, certificate_id):
             # Prepare response
             response = HttpResponse(image_buffer, content_type='image/png')
 
-            filename = f"Certificate_{certificate.certification_type.name.replace(' ','_')}_{certificate.client.full_name.replace(' ','_')}_{certificate.id}.png"
+            filename = f"Certificate_{certificate.certification_type.name.replace(' ', '_')}_{certificate.client.full_name.replace(' ', '_')}_{certificate.id}.png"
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
             return response
         except Exception as e:
@@ -508,10 +533,10 @@ def download_certificate_image_view(request, certificate_id):
                 return redirect('my_certificates')
 
     except (Certificate.DoesNotExist, ValueError):
-         messages.error(request, "Certificate not found.")
-         if request.user.is_employee:
+        messages.error(request, "Certificate not found.")
+        if request.user.is_employee:
             return redirect('issued_certificates')
-         else:
+        else:
             return redirect('my_certificates')
 
 
@@ -523,15 +548,15 @@ def manage_skills_view(request):
             try:
                 form.save()
                 messages.success(request, "Skill added successfully.")
-                return redirect('manage_skills') # Redirect back to the same page
-            except IntegrityError: # Handle case where skill name already exists
+                return redirect('manage_skills')  # Redirect back to the same page
+            except IntegrityError:  # Handle case where skill name already exists
                 messages.error(request, f"Skill '{form.cleaned_data['name']}' already exists.")
             except Exception as e:
-                 messages.error(request, f"Failed to add skill: {e}")
+                messages.error(request, f"Failed to add skill: {e}")
         else:
             messages.error(request, "Please correct the error below.")
     else:
-        form = SkillForm() # Empty form for GET request (for the modal/add section)
+        form = SkillForm()  # Empty form for GET request (for the modal/add section)
 
     skills = Skill.objects.all()
     context = {
@@ -552,9 +577,9 @@ def edit_skill_view(request, skill_id):
                 messages.success(request, f"Skill '{skill.name}' updated successfully.")
                 return redirect('manage_skills')
             except IntegrityError:
-                 messages.error(request, f"A skill with the name '{form.cleaned_data['name']}' already exists.")
+                messages.error(request, f"A skill with the name '{form.cleaned_data['name']}' already exists.")
             except Exception as e:
-                 messages.error(request, f"Failed to update skill: {e}")
+                messages.error(request, f"Failed to update skill: {e}")
         else:
             messages.error(request, "Please correct the error below.")
     else:
@@ -565,6 +590,7 @@ def edit_skill_view(request, skill_id):
         'skill': skill,
     }
     return render(request, 'core/edit_skill.html', context)
+
 
 @employee_required
 def delete_skill_view(request, skill_id):
@@ -582,6 +608,33 @@ def delete_skill_view(request, skill_id):
         # If accessed via GET, redirect away or show method not allowed
         messages.warning(request, "Deletion must be done via POST request.")
         return redirect('manage_skills')
+
+
+@login_required
+def download_certificate_pdf_view(request, certificate_id):
+    try:
+        certificate = get_object_or_404(Certificate, pk=certificate_id)
+
+        # Generate PDF using the utility function (which now uses the image)
+        pdf_response = render_certificate_to_pdf(certificate)
+
+        if pdf_response:
+            filename = f"Certificate_{certificate.certification_type.name.replace(' ', '_')}_{certificate.client.full_name.replace(' ', '_')}_{certificate.id}.pdf"
+            pdf_response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return pdf_response
+        else:
+            messages.error(request, "Could not generate certificate PDF.")
+            if request.user.is_staff:
+                return redirect('issued_certificates')
+            else:
+                return redirect('my_certificates')
+
+    except (Certificate.DoesNotExist, ValueError):
+        messages.error(request, "Certificate not found.")
+        if request.user.is_staff:
+            return redirect('issued_certificates')
+        else:
+            return redirect('my_certificates')
 
 
 @employee_required
@@ -623,32 +676,32 @@ def bulk_issue_certificates_view(request):
                                 skipped_count += 1
                                 continue
 
-                            if Certificate.objects.filter(client=client, certification_type=certification_type).exists():
+                            if Certificate.objects.filter(client=client,
+                                                          certification_type=certification_type).exists():
                                 error_list.append(f"Row {row_idx}: Client '{email}' already has this certificate.")
                                 skipped_count += 1
                                 continue
 
-                            # Create and save certificate
                             certificate = Certificate(
                                 client=client,
                                 certification_type=certification_type,
                                 issue_date=issue_date
                             )
-                            certificate.save() # Save to get ID for image/email
+                            certificate.save()
 
-                            # Generate image (optional - can be slow for bulk)
                             # try:
                             #     generate_certificate_image_with_details(certificate)
                             # except Exception as img_err:
-                            #     error_list.append(f"Row {row_idx}: Issued cert for '{email}', but image failed: {img_err}")
+                            #      print(f"ERROR generating image for cert {certificate.id}: {img_err}")
+                            #      error_list.append(f"Row {row_idx}: Issued cert for '{email}', but image failed: {img_err}")
 
-                            # Send notification email
                             verification_url = request.build_absolute_uri(certificate.get_absolute_url())
                             send_certificate_issued_email_html(
                                 to_email=client.email,
                                 fullname=client.full_name,
                                 certificate_name=certification_type.name,
-                                verification_url=verification_url
+                                verification_url=verification_url,
+                                certificate_instance=certificate
                             )
                             issued_count += 1
 
@@ -675,7 +728,7 @@ def bulk_issue_certificates_view(request):
         else:
             messages.error(request, "Invalid form submission. Please check the fields.")
 
-    else: # GET request
+    else:  # GET request
         form = BulkIssueCertificateForm()
 
     upload_errors = request.session.pop('bulk_issue_errors', None)
@@ -684,4 +737,3 @@ def bulk_issue_certificates_view(request):
         'upload_errors': upload_errors
     }
     return render(request, 'core/bulk_issue_certificates.html', context)
-
