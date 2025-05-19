@@ -1,0 +1,73 @@
+{% extends "users/base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Issue Certificates for {{ event.name }}{% endblock %}
+
+{% block content %}
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8">
+                <h2 class="h3 page-title mb-2">Issue Certificates</h2>
+                <p class="mb-4 text-muted">Event: <strong>{{ event.name }}</strong><br>
+                    Certificate Type to Issue: <strong>{{ event.certification_type.name }}</strong>
+                </p>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                {% if not event.certification_type %}
+                    <div class="alert alert-warning">This event does not have an associated certification type. Please <a href="{% url 'event_edit' event.pk %}">edit the event</a> to assign one.</div>
+                {% elif eligible_registrations_count == 0 %}
+                    <div class="alert alert-info">No users currently marked as 'Attended' for this event. Please <a href="{% url 'manage_event_registrations' event.pk %}">update attendance records</a> first.</div>
+                {% else %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="card shadow">
+                            <div class="card-header">
+                                <strong class="card-title">Select Attendees ({{ eligible_registrations_count }} eligible)</strong>
+                            </div>
+                            <div class="card-body">
+                                {% if form.attendees.field.queryset.exists %}
+                                    <div class="form-group">
+                                        {{ form.attendees.label_tag }}
+                                        <div class="checkbox-list" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;">
+                                            {% for checkbox in form.attendees %}
+                                                <div class="form-check">
+                                                    {{ checkbox.tag }}
+                                                    <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                                                        {{ checkbox.choice_label }}
+                                                    </label>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                        {% for error in form.attendees.errors %}
+                                            <div class="invalid-feedback d-block">{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                    <p class="text-muted"><small>Only users marked as 'Attended' (or 'Confirmed' based on settings) are listed.</small></p>
+                                {% else %}
+                                    <p>No attendees are currently eligible for certificate issuance for this event (e.g., none marked as 'Attended').</p>
+                                {% endif %}
+                            </div>
+                            {% if form.attendees.field.queryset.exists %}
+                                <div class="card-footer">
+                                    <button type="submit" class="btn btn-success">Issue Certificates to Selected</button>
+                                    <a href="{% url 'event_detail_admin' event.pk %}" class="btn btn-secondary">Cancel</a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

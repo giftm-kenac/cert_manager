@@ -1,0 +1,146 @@
+{% extends "users/base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ form_title|default:"Manage Event" }}{% endblock %}
+
+{% block content %}
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-10 col-lg-8">
+                <h2 class="h3 page-title mb-4">{{ form_title|default:"Manage Event" }}</h2>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="card shadow mb-4">
+                        <div class="card-header">
+                            <strong class="card-title">Event Details</strong>
+                        </div>
+                        <div class="card-body">
+                            {{ form.non_field_errors }}
+                            {% for field in form %}
+                                <div class="form-group mb-3">
+                                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                    {{ field }}
+                                    {% if field.help_text %}
+                                        <small class="form-text text-muted">{{ field.help_text }}</small>
+                                    {% endif %}
+                                    {% for error in field.errors %}
+                                        <div class="invalid-feedback d-block">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="card shadow mb-4">
+                        <div class="card-header">
+                            <strong class="card-title">Event Registration Questions</strong>
+                        </div>
+                        <div class="card-body">
+                            {{ questions_formset.management_form }}
+                            {% if questions_formset.non_form_errors %}
+                                <div class="alert alert-danger">
+                                    {{ questions_formset.non_form_errors }}
+                                </div>
+                            {% endif %}
+
+                            <div id="question-forms-container">
+                                {% for question_form in questions_formset %}
+                                    <div class="question-form mb-3 p-3 border rounded">
+                                        {{ question_form.non_field_errors }}
+                                        <div class="row">
+                                            {% for field in question_form %}
+                                                {% if field.name != 'DELETE' %}
+                                                    <div class="col-md-6 form-group">
+                                                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                                        {{ field }}
+                                                        {% for error in field.errors %}
+                                                            <div class="invalid-feedback d-block">{{ error }}</div>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            {% endfor %}
+                                            {% if question_form.instance.pk and questions_formset.can_delete %}
+                                                <div class="col-md-12 form-group">
+                                                    {{ question_form.DELETE.label_tag }} {{ question_form.DELETE }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        {% if question_form.instance.pk %}
+                                            <input type="hidden" name="{{ question_form.prefix }}-id" value="{{ question_form.instance.pk }}">
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <button type="button" id="add-question-form" class="btn btn-sm btn-outline-info mt-2">Add Another Question</button>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary">Save Event</button>
+                        <a href="{% if object %}{% url 'event_detail_admin' object.pk %}{% else %}{% url 'event_list_admin' %}{% endif %}" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="empty-question-form" style="display:none;">
+        <div class="question-form mb-3 p-3 border rounded">
+            {{ questions_formset.empty_form.non_field_errors }}
+            <div class="row">
+                {% for field in questions_formset.empty_form %}
+                    {% if field.name != 'DELETE' %}
+                        <div class="col-md-6 form-group">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% for error in field.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const addFormButton = document.getElementById('add-question-form');
+            const formsContainer = document.getElementById('question-forms-container');
+            const emptyFormTemplate = document.getElementById('empty-question-form').innerHTML;
+            const totalFormsInput = document.querySelector('input[name="questions-TOTAL_FORMS"]');
+            let formNum = {{ questions_formset.initial_form_count }};
+
+            addFormButton.addEventListener('click', function() {
+                const newFormHtml = emptyFormTemplate.replace(/__prefix__/g, formNum);
+                const newFormDiv = document.createElement('div');
+                newFormDiv.innerHTML = newFormHtml;
+                formsContainer.appendChild(newFormDiv.firstChild);
+                formNum++;
+                totalFormsInput.value = formNum;
+
+                // Re-initialize select2 if you are using it on dynamically added fields
+                $(newFormDiv.firstChild).find('.select2').each(function() {
+                    $(this).select2({
+                        theme: 'bootstrap4',
+                    });
+                });
+            });
+        });
+    </script>
+{% endblock %}

@@ -1,0 +1,86 @@
+{% extends "users/base.html" %}
+{% load static %}
+
+{% block title %}Manage Registrations for {{ event.name }}{% endblock %}
+
+{% block content %}
+    <div class="container-fluid">
+        <div class="row align-items-center mb-3">
+            <div class="col">
+                <h2 class="h3 page-title">Manage Registrations</h2>
+                <p class="text-muted">Event: <strong>{{ event.name }}</strong> ({{ event.date|date:"M d, Y" }})</p>
+            </div>
+            <div class="col-auto">
+                <a href="{% url 'event_detail_admin' event.pk %}" class="btn btn-sm btn-outline-secondary">
+                    <span class="fe fe-arrow-left fe-16 mr-2"></span>Back to Event Details
+                </a>
+            </div>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="card shadow">
+            <div class="card-body">
+                {% if registrations %}
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="table-responsive">
+                            <table class="table table-hover datatable">
+                                <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Full Name</th>
+                                    <th>Email</th>
+                                    <th>Registered On</th>
+                                    <th>Current Status</th>
+                                    <th>Update Status</th>
+                                    <th>Attended?</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {% for reg in registrations %}
+                                    <tr>
+                                        <td>{{ forloop.counter }}</td>
+                                        <td>{{ reg.user.get_full_name|default:reg.user.email }}</td>
+                                        <td>{{ reg.user.email }}</td>
+                                        <td>{{ reg.registration_date|date:"M d, Y H:i" }}</td>
+                                        <td><span class="badge badge-pill badge-{{ reg.status|lower }}">{{ reg.get_status_display }}</span></td>
+                                        <td>
+                                            <select name="status_{{ reg.pk }}" class="form-control form-control-sm">
+                                                {% for value, display in status_choices %}
+                                                    <option value="{{ value }}" {% if reg.status == value %}selected{% endif %}>{{ display }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            {% if reg.attended %}
+                                                <span class="fe fe-check-circle text-success fe-16"></span> Yes
+                                            {% else %}
+                                                <span class="fe fe-minus-circle text-muted fe-16"></span> No
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-primary">Update Selected Statuses</button>
+                        </div>
+                    </form>
+                {% else %}
+                    <p class="text-center">No registrations found for this event.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "users/base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Send Notification for {{ event.name }}{% endblock %}
+
+{% block content %}
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8">
+                <h2 class="h3 page-title mb-2">Send Notification</h2>
+                <p class="mb-4 text-muted">Event: <strong>{{ event.name }}</strong></p>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="card shadow">
+                        <div class="card-header">
+                            <strong class="card-title">Compose Email Notification</strong>
+                        </div>
+                        <div class="card-body">
+                            {{ form.non_field_errors }}
+                            {% for field in form %}
+                                <div class="form-group mb-3">
+                                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                    {{ field }}
+                                    {% if field.help_text %}
+                                        <small class="form-text text-muted">{{ field.help_text }}</small>
+                                    {% endif %}
+                                    {% for error in field.errors %}
+                                        <div class="invalid-feedback d-block">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endfor %}
+                            <p class="text-muted"><small>This email will be sent to all users currently registered for the event (excluding those who cancelled).</small></p>
+                        </div>
+                        <div class="card-footer">
+                            <button type="submit" class="btn btn-primary">Send Notification</button>
+                            <a href="{% url 'event_detail_admin' event.pk %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}

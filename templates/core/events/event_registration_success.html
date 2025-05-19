@@ -1,0 +1,28 @@
+{% extends "users/auth_base.html" %}
+{% load static %}
+
+{% block title %}Registration Successful!{% endblock %}
+
+{% block content %}
+    <div class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card shadow-lg text-center">
+                    <div class="card-body p-5">
+                        <span class="fe fe-check-circle fe-32 text-success mb-3"></span>
+                        <h3 class="mb-3">Registration Successful!</h3>
+                        <p class="lead">Thank you for registering for <strong>{{ event.name }}</strong>.</p>
+                        <p>A confirmation email has been sent to your email address with further details.</p>
+                        <p>We look forward to seeing you at the event!</p>
+                        <hr class="my-4">
+                        <p>
+                            Event Date: {{ event.date|date:"l, F j, Y" }} at {{ event.time|time:"P" }}<br>
+                            Venue: {{ event.venue }}
+                        </p>
+                        <a href="{% url 'home' %}" class="btn btn-outline-primary mt-3">Back to Home</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

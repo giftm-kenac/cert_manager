@@ -1,0 +1,97 @@
+{% extends "users/base.html" %}
+{% load static %}
+
+{% block title %}Manage Events{% endblock %}
+
+{% block content %}
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-12">
+                <div class="row align-items-center mb-2">
+                    <div class="col">
+                        <h2 class="h3 page-title">Manage Events</h2>
+                    </div>
+                    <div class="col-auto">
+                        <a href="{% url 'event_create' %}" class="btn btn-primary">
+                            <span class="fe fe-plus fe-16 mr-2"></span>Create New Event
+                        </a>
+                    </div>
+                </div>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <div class="card shadow">
+                    <div class="card-body">
+                        {% if events %}
+                            <table class="table table-hover table-borderless datatable">
+                                <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Date & Time</th>
+                                    <th>Venue</th>
+                                    <th>Status</th>
+                                    <th>Registrations</th>
+                                    <th>Actions</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {% for event in events %}
+                                    <tr>
+                                        <td>{{ event.name }}</td>
+                                        <td>{{ event.date|date:"D, M d, Y" }} at {{ event.time|time:"H:i" }}</td>
+                                        <td>{{ event.venue }}</td>
+                                        <td>
+                                            {% if event.is_active %}
+                                                <span class="badge badge-success">Active</span>
+                                            {% else %}
+                                                <span class="badge badge-danger">Inactive/Cancelled</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ event.registrations.count }}</td>
+                                        <td>
+                                            <a href="{% url 'event_detail_admin' event.pk %}" class="btn btn-sm btn-outline-primary">Details</a>
+                                            <a href="{% url 'event_edit' event.pk %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        {% else %}
+                            <p class="text-center">No events found. <a href="{% url 'event_create' %}">Create one now</a>.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if is_paginated %}
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mt-4">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a></li>
+                            {% endif %}
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                                {% else %}
+                                    <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                                {% endif %}
+                            {% endfor %}
+                            {% if page_obj.has_next %}
+                                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -4,7 +4,11 @@ from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 import uuid
-from users.models import TimeStampedModel
+
+from django.utils.text import slugify
+
+from users.models import TimeStampedModel, EmployeeProfile, CustomUser
+
 
 class Skill(TimeStampedModel):
     name = models.CharField(max_length=150, unique=True)
@@ -188,3 +192,157 @@ class Schedule(TimeStampedModel):
     def __str__(self):
         event_time = self.event_datetime.strftime('%Y-%m-%d %H:%M') if self.event_datetime else "Unscheduled"
         return f"{self.client.full_name} - {self.course.name} ({event_time} - {self.get_status_display()})"
+
+
+
+class Event(models.Model):
+    """
+    Represents an event that users can register for.
+    """
+    name = models.CharField(max_length=255, help_text="The official name of the event.")
+    description = models.TextField(help_text="A detailed description of the event.")
+    venue = models.CharField(max_length=255, help_text="Physical or virtual location of the event.")
+    date = models.DateField(help_text="Date of the event.")
+    time = models.TimeField(help_text="Start time of the event.")
+
+    certification_type = models.ForeignKey(
+        CertificationType,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Certificate to be awarded upon completion/attendance (optional)."
+    )
+    created_by = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='created_events',
+        limit_choices_to={'is_employee': True}, # Ensure only employees can create events
+        help_text="Employee who created this event."
+    )
+    slug = models.SlugField(max_length=255, unique=True, blank=True, help_text="URL-friendly identifier. Auto-generated if left blank.")
+    is_active = models.BooleanField(default=True, help_text="Controls if public registration is open.")
+    max_attendees = models.PositiveIntegerField(null=True, blank=True, help_text="Maximum number of allowed registrations (optional).")
+    registration_deadline = models.DateTimeField(null=True, blank=True, help_text="Registrations close after this date/time (optional).")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(f"{self.name}-{uuid.uuid4().hex[:6]}") # Add a short UUID to ensure uniqueness
+        super().save(*args, **kwargs)
+
+    class Meta:
+        ordering = ['-date', '-time']
+
+
+class EventQuestion(models.Model):
+    """
+    A question defined for an event's registration form.
+    """
+    FIELD_TYPE_CHOICES = [
+        ('text', 'Text (Single Line)'),
+        ('email', 'Email'),
+        ('phone', 'Phone Number'),
+        ('textarea', 'Text Area (Multi-line)'),
+        ('select', 'Dropdown Select'),
+        ('radio', 'Radio Buttons (Single Choice)'),
+        ('checkbox', 'Checkboxes (Multiple Choices Possible)'),
+        ('number', 'Number'),
+        ('date', 'Date'),
+    ]
+
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='questions')
+    text = models.CharField(max_length=500, help_text="The question text (e.g., 'Full Name & Surname').")
+    field_type = models.CharField(max_length=20, choices=FIELD_TYPE_CHOICES, help_text="The type of input field for this question.")
+    is_required = models.BooleanField(default=True, help_text="Is answering this question mandatory?")
+    order = models.PositiveIntegerField(default=0, help_text="Order in which questions appear on the form.")
+
+    def __str__(self):
+        return f"{self.event.name} - Q{self.order}: {self.text[:50]}..."
+
+    class Meta:
+        ordering = ['event', 'order']
+
+
+class EventQuestionOption(models.Model):
+    """
+    An option for a multiple-choice (select, radio, checkbox) EventQuestion.
+    """
+    question = models.ForeignKey(EventQuestion, on_delete=models.CASCADE, related_name='options')
+    option_text = models.CharField(max_length=255, help_text="The text displayed for this option (e.g., 'Small', 'Visit to the Falls').")
+    value = models.CharField(max_length=255, blank=True, help_text="The value stored if this option is selected (defaults to option_text if blank).")
+
+    def __str__(self):
+        return f"{self.question.text[:30]}... - Option: {self.option_text}"
+
+    def get_value(self):
+        return self.value if self.value else self.option_text
+
+    class Meta:
+        ordering = ['question', 'option_text']
+
+
+class EventRegistration(models.Model):
+    """
+    Records a user's registration for a specific event.
+    """
+    STATUS_CHOICES = [
+        ('REGISTERED', 'Registered'),
+        ('CONFIRMED', 'Confirmed'), # e.g., if payment or further action was needed
+        ('CANCELLED_BY_USER', 'Cancelled by User'),
+        ('CANCELLED_BY_ADMIN', 'Cancelled by Admin'),
+        ('WAITLISTED', 'Waitlisted'),
+        ('ATTENDED', 'Attended'),
+        ('NOT_ATTENDED', 'Not Attended'),
+    ]
+
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='registrations')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='event_registrations', help_text="The client who registered.")
+    registration_date = models.DateTimeField(auto_now_add=True)
+    attended = models.BooleanField(default=False, help_text="Marked by admin if the user attended the event.") # Can be deprecated if status 'ATTENDED' is used
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='REGISTERED')
+
+    # Unique constraint to prevent double registration for the same event by the same user
+    class Meta:
+        unique_together = ('event', 'user')
+        ordering = ['-registration_date']
+
+    def __str__(self):
+        return f"{self.user.email} registered for {self.event.name}"
+
+
+class EventRegistrationAnswer(models.Model):
+    """
+    Stores an answer to a specific EventQuestion for an EventRegistration.
+    """
+    registration = models.ForeignKey(EventRegistration, on_delete=models.CASCADE, related_name='answers')
+    question = models.ForeignKey(EventQuestion, on_delete=models.CASCADE, related_name='user_answers')
+
+    # For text, textarea, select, radio, email, phone, number, date
+    answer_text = models.TextField(blank=True, null=True, help_text="The user's answer for text-based or single-choice questions.")
+
+    # For checkbox (multiple selections possible)
+    # We store the selected EventQuestionOption(s)
+    selected_options = models.ManyToManyField(
+        EventQuestionOption,
+        blank=True,
+        related_name='answer_selections',
+        help_text="For checkbox questions, links to the selected options."
+    )
+
+    def __str__(self):
+        if self.answer_text:
+            return f"Answer to '{self.question.text[:30]}...': {self.answer_text[:50]}..."
+        elif self.selected_options.exists():
+            options_str = ", ".join([opt.option_text for opt in self.selected_options.all()])
+            return f"Answer to '{self.question.text[:30]}...': {options_str}"
+        return f"No answer provided for '{self.question.text[:30]}...'"
+
+    class Meta:
+        # Ensures one answer per question per registration
+        unique_together = ('registration', 'question')
+        ordering = ['registration', 'question__order']

@@ -1,0 +1,174 @@
+{% extends "users/base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Event Details: {{ event.name }}{% endblock %}
+
+{% block content %}
+    <div class="container-fluid">
+        <h2 class="h3 page-title mb-2">Event: {{ event.name }}</h2>
+        <p class="mb-4 text-muted">
+            <a href="{% url 'event_list_admin' %}" class="btn btn-sm btn-outline-secondary mr-2"><span class="fe fe-arrow-left"></span> Back to Events</a>
+            <a href="{% url 'event_edit' event.pk %}" class="btn btn-sm btn-info mr-2"><span class="fe fe-edit"></span> Edit Event</a>
+            {% if event.is_active %}
+                <a href="{% url 'public_event_register' event.slug %}" class="btn btn-sm btn-outline-success mr-2" target="_blank"><span class="fe fe-link"></span> Public Link</a>
+                <button type="button" class="btn btn-sm btn-danger" data-toggle="modal" data-target="#cancelEventModal">
+                    <span class="fe fe-x-circle"></span> Cancel Event
+                </button>
+            {% else %}
+                <span class="badge badge-lg badge-danger">Event Cancelled/Inactive</span>
+            {% endif %}
+        </p>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="row">
+            <div class="col-md-7">
+                <div class="card shadow mb-4">
+                    <div class="card-header">
+                        <strong class="card-title">Event Information</strong>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Date & Time:</strong> {{ event.date|date:"l, F j, Y" }} at {{ event.time|time:"P" }}</p>
+                        <p><strong>Venue:</strong> {{ event.venue }}</p>
+                        <p><strong>Description:</strong> {{ event.description|linebreaksbr }}</p>
+                        <p><strong>Status:</strong> {% if event.is_active %}Active (Registration Open){% else %}Inactive/Cancelled{% endif %}</p>
+                        <p><strong>Max Attendees:</strong> {{ event.max_attendees|default:"Unlimited" }}</p>
+                        <p><strong>Registration Deadline:</strong> {{ event.registration_deadline|date:"F j, Y, P"|default:"N/A" }}</p>
+                        <p><strong>Associated Certificate:</strong> {{ event.certification_type.name|default:"None" }}</p>
+                        <p><strong>Created By:</strong> {{ event.created_by.get_full_name|default:event.created_by.email }} on {{ event.created_at|date:"F j, Y" }}</p>
+                    </div>
+                </div>
+
+                <div class="card shadow mb-4">
+                    <div class="card-header">
+                        <strong class="card-title">Registration Questions</strong>
+                    </div>
+                    <div class="card-body">
+                        {% if questions %}
+                            <ul class="list-group list-group-flush">
+                                {% for question in questions %}
+                                    <li class="list-group-item">
+                                        <strong>{{ question.order }}. {{ question.text }}</strong> ({{ question.get_field_type_display }}) {% if question.is_required %}<span class="text-danger">*</span>{% endif %}
+                                        {% if question.options.all %}
+                                            <ul class="list-unstyled ml-3 mt-1">
+                                                {% for option in question.options.all %}
+                                                    <li><small>- {{ option.option_text }}</small></li>
+                                                {% endfor %}
+                                            </ul>
+                                        {% endif %}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p>No registration questions defined for this event.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-5">
+                {% if event.is_active and event.certification_type %}
+                    <div class="card shadow mb-4">
+                        <div class="card-header">
+                            <strong class="card-title">Issue Certificates</strong>
+                        </div>
+                        <div class="card-body">
+                            <p>Issue '{{event.certification_type.name}}' certificates to attendees.</p>
+                            <a href="{% url 'issue_event_certificates' event.pk %}" class="btn btn-success"><span class="fe fe-award"></span> Issue Certificates</a>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if event.is_active %}
+                    <div class="card shadow mb-4">
+                        <div class="card-header">
+                            <strong class="card-title">Send Notification</strong>
+                        </div>
+                        <div class="card-body">
+                            <p>Send an email update to registered users for this event.</p>
+                            <a href="{% url 'send_event_notification' event.pk %}" class="btn btn-warning"><span class="fe fe-mail"></span> Send Notification</a>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header">
+                        <strong class="card-title">Registrations ({{ registrations.count }})</strong>
+                        <a href="{% url 'manage_event_registrations' event.pk %}" class="btn btn-sm btn-outline-secondary float-right"><span class="fe fe-users"></span> Manage Registrations</a>
+                    </div>
+                    <div class="card-body">
+                        {% if registrations %}
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover">
+                                    <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Email</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for reg in registrations|slice:":10" %}
+                                        <tr>
+                                            <td>{{ reg.user.get_full_name|default:"N/A" }}</td>
+                                            <td>{{ reg.user.email }}</td>
+                                            <td>{{ reg.registration_date|naturaltime }}</td>
+                                            <td><span class="badge badge-pill badge-{{ reg.status|lower }}">{{ reg.get_status_display }}</span></td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                                {% if registrations.count > 10 %}
+                                    <p class="text-center mt-2"><a href="{% url 'manage_event_registrations' event.pk %}">View all {{ registrations.count }} registrations...</a></p>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <p>No registrations for this event yet.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if event.is_active %}
+        <div class="modal fade" id="cancelEventModal" tabindex="-1" role="dialog" aria-labelledby="cancelEventModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="cancelEventModalLabel">Confirm Event Cancellation</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        Are you sure you want to cancel the event "<strong>{{ event.name }}</strong>"? This action will mark the event as inactive and update all current registrations to 'Cancelled by Admin'. This cannot be undone easily.
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <form method="POST" action="{% url 'admin_cancel_event' event.pk %}" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger">Yes, Cancel Event</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+{% endblock %}
