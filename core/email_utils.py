@@ -176,7 +176,7 @@ def send_verification_email_html(verification_code, to_email, fullname):
         'site_name': getattr(settings, 'SITE_NAME', 'Our Platform'),
         'site_url': getattr(settings, 'SITE_URL', ''),
     }
-    html_content = render_to_string('users/email/account_verification.html', context)
+    html_content = render_to_string('core/account_verification.html', context)
     text_content = strip_tags(html_content)
 
     try:
@@ -204,7 +204,7 @@ def send_employee_welcome_email_html(to_email, fullname, password, login_url_nam
         'year': datetime.date.today().year,
         'site_name': getattr(settings, 'SITE_NAME', 'Our Platform'),
     }
-    html_content = render_to_string('core/email/employee_welcome.html', context)
+    html_content = render_to_string('core/employee_welcome.html', context)
     text_content = strip_tags(html_content)
 
     try:
@@ -233,7 +233,7 @@ def send_certificate_issued_email_html(to_email, fullname, certificate_name, cer
         'site_name': getattr(settings, 'SITE_NAME', 'Our Platform'),
         'certificate_id': str(certificate_instance.id)
     }
-    html_content = render_to_string('core/email/certificate_issued.html', context)
+    html_content = render_to_string('core/certificate_issued.html', context)
     text_content = strip_tags(html_content)
 
     try:
@@ -272,7 +272,7 @@ def send_event_registration_confirmation_email(user_email, event):
         'site_name': getattr(settings, 'SITE_NAME', 'Our Platform'),
         'year': datetime.date.today().year,
     }
-    html_content = render_to_string('core/email/event_registration_confirmation.html', context)
+    html_content = render_to_string('core/event_registration_confirmation.html', context)
     text_content = strip_tags(html_content)
 
     try:
@@ -302,7 +302,7 @@ def send_new_user_credentials_event_email(user, password, event, login_url_name=
         'site_url': settings.SITE_URL,
         'year': datetime.date.today().year,
     }
-    html_content = render_to_string('core/email/new_user_credentials_event.html', context)
+    html_content = render_to_string('core/new_user_credentials_event.html', context)
     text_content = strip_tags(html_content)
 
     try:
@@ -323,7 +323,7 @@ def send_event_notification_to_registrants(event, subject, message_body_html, re
         'site_url': settings.SITE_URL,
         'year': datetime.date.today().year,
     }
-    html_content = render_to_string('core/email/event_custom_notification_wrapper.html', context)
+    html_content = render_to_string('core/event_custom_notification_wrapper.html', context)
     text_content = strip_tags(message_body_html)
 
     try:

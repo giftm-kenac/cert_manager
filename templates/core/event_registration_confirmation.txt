@@ -1,0 +1,26 @@
+Subject: Event Registration Confirmation: {{ event_name }}
+
+Hello {{ user_email }},
+
+Thank you for registering for the event: {{ event_name }}.
+
+We're excited to have you join us! Here are the details of the event:
+
+Event: {{ event_name }}
+Date: {{ event_date|date:"l, F j, Y" }}
+Time: {{ event_time|time:"P" }}
+Venue: {{ event_venue }}
+
+If you need to review the event details, you can visit the event page:
+{{ event_public_url }}
+
+We will send you any further updates or reminders as the event approaches.
+
+If you have any questions, please don't hesitate to contact us.
+
+Sincerely,
+The {{ site_name }} Team
+
+---
+© {{ year }} {{ site_name }}. All rights reserved.
+{{ site_url }}

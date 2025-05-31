@@ -291,8 +291,18 @@ class PublicEventRegistrationForm(forms.Form):
         required=True,
         widget=forms.EmailInput(attrs={'class': 'form-control mb-3', 'placeholder': 'Enter your primary email address'})
     )
-    # Consider adding a fixed "Full Name" field if it's always required and not part of dynamic questions.
-    # user_full_name = forms.CharField(label="Full Name", required=True, widget=forms.TextInput(attrs={'class': 'form-control mb-3'}))
+    first_name = forms.CharField(
+        label="First Name",
+        required=True,
+        max_length=150, # Standard max_length for User model's first_name
+        widget=forms.TextInput(attrs={'class': 'form-control mb-3', 'placeholder': 'Enter your first name'})
+    )
+    last_name = forms.CharField(
+        label="Last Name",
+        required=True,
+        max_length=150, # Standard max_length for User model's last_name
+        widget=forms.TextInput(attrs={'class': 'form-control mb-3', 'placeholder': 'Enter your last name'})
+    )
 
 
     def __init__(self, *args, **kwargs):

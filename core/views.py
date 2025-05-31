@@ -1,4 +1,5 @@
 import openpyxl
+from django.contrib.auth import get_user_model
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -13,7 +14,7 @@ import uuid
 import secrets
 
 from django.conf import settings
-User = settings.AUTH_USER_MODEL
+User = get_user_model()
 
 from users.decorators import client_required, employee_required
 from users.models import CustomUser, ClientProfile
@@ -622,7 +623,7 @@ class EventDetailAdminView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         event = self.get_object()
-        context['registrations'] = EventRegistration.objects.filter(event=event).select_related('user__client_profile').order_by('-registration_date')
+        context['registrations'] = EventRegistration.objects.filter(event=event).select_related('user__clientprofile').order_by('-registration_date')
         context['questions'] = EventQuestion.objects.filter(event=event).prefetch_related('options').order_by('order')
         if event.certification_type:
             context['attendee_form'] = EventAttendeeSelectionForm(event_id=event.pk)
@@ -645,66 +646,105 @@ class AdminCancelEventView(View):
                 reg.status = 'CANCELLED_BY_ADMIN'
                 reg.save(update_fields=['status'])
                 updated_count +=1
-                # try:
-                #     send_admin_event_cancellation_notice_email(reg.user.email, event) # Ensure this email util exists
-                # except Exception as e:
-                #     print(f"Failed to send cancellation notice to {reg.user.email} for event {event.name}: {e}")
-        messages.success(request, f"Event '{event.name}' has been cancelled. {updated_count} registrations were updated.")
+            messages.success(request, f"Event '{event.name}' has been cancelled. {updated_count} registrations were updated.")
         return redirect('event_detail_admin', pk=event.pk)
 
 class PublicEventRegisterView(View):
     template_name = 'core/events/public_event_registration.html'
+
     def get_event(self, event_slug):
         try:
             return Event.objects.prefetch_related('questions__options').get(slug=event_slug, is_active=True)
         except Event.DoesNotExist:
             raise Http404("Event not found or registration is closed.")
+
     def get(self, request, event_slug):
         event = self.get_event(event_slug)
         if event.registration_deadline and timezone.now() > event.registration_deadline:
             messages.error(request, f"Registration for '{event.name}' has closed.")
             return render(request, 'core/events/event_registration_closed.html', {'event': event})
+
+        initial_data = {}
         if request.user.is_authenticated:
             existing_registration = EventRegistration.objects.filter(event=event, user=request.user).first()
             if existing_registration and existing_registration.status not in ['CANCELLED_BY_USER', 'CANCELLED_BY_ADMIN']:
                 messages.info(request, f"You are already registered for '{event.name}'. Status: {existing_registration.get_status_display()}")
-        form = PublicEventRegistrationForm(event_questions=event.questions.all().order_by('order'))
+
+            # Pre-fill basic information if user is logged in
+            initial_data['user_email'] = request.user.email
+            if hasattr(request.user, 'first_name'):
+                initial_data['first_name'] = request.user.first_name
+            if hasattr(request.user, 'last_name'):
+                initial_data['last_name'] = request.user.last_name
+
+        form = PublicEventRegistrationForm(initial=initial_data, event_questions=event.questions.all().order_by('order'))
         return render(request, self.template_name, {'event': event, 'form': form})
+
     @transaction.atomic
     def post(self, request, event_slug):
         event = self.get_event(event_slug)
+
         if event.registration_deadline and timezone.now() > event.registration_deadline:
             messages.error(request, f"Registration for '{event.name}' has closed.")
             return redirect('public_event_register', event_slug=event.slug)
+
         if event.max_attendees is not None:
             current_registrations_count = EventRegistration.objects.filter(event=event, status__in=['REGISTERED', 'CONFIRMED', 'ATTENDED']).count()
             if current_registrations_count >= event.max_attendees:
                 messages.error(request, f"Sorry, registration for '{event.name}' is full.")
                 return redirect('public_event_register', event_slug=event.slug)
+
         form = PublicEventRegistrationForm(request.POST, event_questions=event.questions.all().order_by('order'))
+
         if form.is_valid():
             user_email = form.cleaned_data['user_email']
+            first_name = form.cleaned_data['first_name'] # Get first_name
+            last_name = form.cleaned_data['last_name']   # Get last_name
+
             user = None
             new_user_created = False
             password = None
+
             if request.user.is_authenticated and request.user.email == user_email:
                 user = request.user
+                # Optionally update user's first_name/last_name if they changed it in the form
+                if user.first_name != first_name or user.last_name != last_name:
+                    user.first_name = first_name
+                    user.last_name = last_name
+                    user.save(update_fields=['first_name', 'last_name'])
             else:
                 try:
                     user = User.objects.get(email=user_email)
+                    # If user exists, you might still want to update their name if provided differently
+                    if user.first_name != first_name or user.last_name != last_name:
+                        user.first_name = first_name
+                        user.last_name = last_name
+                        user.save(update_fields=['first_name', 'last_name'])
                 except User.DoesNotExist:
                     password = secrets.token_urlsafe(12)
-                    user_data = {'email': user_email, 'password': password}
-                    if hasattr(User, 'is_client'): user_data['is_client'] = True # Check User model definition
-                    if hasattr(User, 'is_verified'): user_data['is_verified'] = True # Auto-verify for event registration
+                    user_data = {
+                        'email': user_email,
+                        'password': password,
+                        'first_name': first_name, # Pass to create_user
+                        'last_name': last_name    # Pass to create_user
+                    }
+                    if hasattr(User, 'is_client'):
+                        user_data['is_client'] = True
+                    if hasattr(User, 'is_verified'):
+                        user_data['is_verified'] = True # Auto-verify for event registration convenience
+
                     user = User.objects.create_user(**user_data)
+
                     if hasattr(user, 'is_client') and user.is_client:
                         ClientProfile.objects.get_or_create(user=user)
                     new_user_created = True
+
             if EventRegistration.objects.filter(event=event, user=user).exclude(status__in=['CANCELLED_BY_USER', 'CANCELLED_BY_ADMIN']).exists():
                 messages.warning(request, f"You are already actively registered for {event.name}.")
                 return redirect('public_event_register', event_slug=event.slug)
+
             registration = EventRegistration.objects.create(event=event, user=user, status='REGISTERED')
+
             for question in event.questions.all():
                 field_name = f'question_{question.id}'
                 answer_data = form.cleaned_data.get(field_name)
@@ -717,9 +757,12 @@ class PublicEventRegisterView(View):
                     else:
                         reg_answer.answer_text = str(answer_data)
                         reg_answer.save()
+
             if new_user_created and password:
                 send_new_user_credentials_event_email(user, password, event)
+
             send_event_registration_confirmation_email(user.email, event)
+
             messages.success(request, f"Successfully registered for {event.name}! A confirmation email has been sent.")
             return redirect('event_registration_success', event_slug=event.slug)
         else:
@@ -745,12 +788,8 @@ class UserCancelEventRegistrationView(View):
         else:
             registration.status = 'CANCELLED_BY_USER'
             registration.save(update_fields=['status'])
-            # try:
-            #     send_user_registration_cancellation_confirmation_email(request.user.email, event) # Ensure this email util exists
-            # except Exception as e:
-            #     print(f"Failed to send user cancellation confirmation to {request.user.email} for event {event.name}: {e}")
             messages.success(request, f"Your registration for '{event.name}' has been cancelled.")
-        return HttpResponseRedirect(request.META.get('HTTP_REFERER', reverse('core:client_dashboard')))
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER', reverse('client_dashboard')))
 
 @employee_required
 def manage_event_registrations(request, event_pk):
@@ -782,7 +821,7 @@ def issue_event_certificates(request, event_pk):
     event = get_object_or_404(Event, pk=event_pk)
     if not event.certification_type:
         messages.error(request, "This event does not have a certification type assigned. Certificates cannot be issued.")
-        return redirect('core:event_detail_admin', pk=event.pk)
+        return redirect('event_detail_admin', pk=event.pk)
     eligible_registrations_qs = EventRegistration.objects.filter(event=event, status='ATTENDED').select_related('user', 'user__clientprofile')
     if request.method == 'POST':
         form = EventAttendeeSelectionForm(request.POST, event_id=event.pk)
@@ -832,3 +871,4 @@ def send_event_notification_view(request, event_pk):
         form = EventNotificationForm()
     context = {'event': event, 'form': form}
     return render(request, 'core/events/send_event_notification.html', context)
+

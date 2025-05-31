@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notification regarding {{ event_name }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 20px auto; padding: 20px; background-color: #fff; border: 1px solid #ddd; border-radius: 5px; }
+        .header { background-color: #007bff; color: #ffffff; padding: 10px 20px; text-align: center; border-top-left-radius: 5px; border-top-right-radius: 5px; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .content { padding: 20px; }
+        .content p { margin-bottom: 15px; }
+        .footer { text-align: center; margin-top: 20px; font-size: 0.9em; color: #777; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>Notification for {{ event_name }}</h1>
+    </div>
+    <div class="content">
+        <p>Dear Registrant,</p>
+        <p>Please see the following update regarding the event: <strong>{{ event_name }}</strong>.</p>
+
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+
+        <div>
+            {{ message_body_html|safe }}
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+
+        <p>If you have any questions, please contact the event organizers.</p>
+        <p>Thank you,<br>The {{ site_name }} Team</p>
+    </div>
+    <div class="footer">
+        <p>&copy; {{ year }} {{ site_name }}. All rights reserved.</p>
+        <p><a href="{{ site_url }}">{{ site_url }}</a></p>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,18 @@
+Subject: Notification regarding {{ event_name }}
+
+Dear Registrant,
+
+Please see the following update regarding the event: {{ event_name }}.
+
+---
+{{ message_body_txt }}
+---
+
+If you have any questions, please contact the event organizers.
+
+Thank you,
+The {{ site_name }} Team
+
+---
+© {{ year }} {{ site_name }}. All rights reserved.
+{{ site_url }}
