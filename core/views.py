@@ -127,7 +127,7 @@ def course_detail_view(request, course_id):
 def verify_certificate_view(request, certificate_id):
     try:
         certificate_uuid = uuid.UUID(str(certificate_id))
-        certificate = Certificate.objects.select_related('client__clientprofile', 'certification_type').get(id=certificate_uuid)
+        certificate = Certificate.objects.select_related('client__client_profile', 'certification_type').get(id=certificate_uuid)
     except (Certificate.DoesNotExist, ValueError):
         return render(request, 'core/verify_certificate_not_found.html', status=404)
     context = {'certificate': certificate, 'is_valid': not certificate.is_expired()}
@@ -144,7 +144,7 @@ def verify_certificate_by_id_input_view(request):
         if form.is_valid():
             cert_id_input = form.cleaned_data['certificate_id']
             try:
-                certificate = Certificate.objects.select_related('client__clientprofile', 'certification_type').get(id=cert_id_input)
+                certificate = Certificate.objects.select_related('client__client_profile', 'certification_type').get(id=cert_id_input)
                 if not certificate.generated_certificate_image:
                     image_missing = True
             except Certificate.DoesNotExist:
@@ -258,7 +258,7 @@ def issue_certificate_view(request):
 @employee_required
 def employee_course_detail_view(request, course_id):
     course = get_object_or_404(TrainingCourse, pk=course_id)
-    schedules = Schedule.objects.filter(course=course).select_related('client__clientprofile').order_by('-created_at')
+    schedules = Schedule.objects.filter(course=course).select_related('client__client_profile').order_by('-created_at')
     if request.method == 'POST' and 'update_status' in request.POST:
         status_form = UpdateScheduleStatusForm(request.POST)
         if status_form.is_valid():
@@ -355,14 +355,14 @@ def manage_clients_view(request):
                 messages.error(request, f"Error processing Excel file: {e}")
         else:
             messages.error(request, "Invalid file submitted.")
-    clients = CustomUser.objects.filter(is_employee=False).select_related('clientprofile').order_by('last_name', 'first_name')
+    clients = ClientProfile.objects.all().order_by('user__last_name', 'user__first_name')
     context = {'clients': clients, 'upload_form': upload_form, 'upload_errors': upload_errors}
     return render(request, 'core/manage_clients.html', context)
 
 
 @employee_required
 def issued_certificates_view(request):
-    certificates = Certificate.objects.select_related('client__clientprofile', 'certification_type').all().order_by('-issue_date')
+    certificates = Certificate.objects.select_related('client', 'certification_type').all().order_by('-issue_date')
     context = {'certificates': certificates}
     return render(request, 'core/issued_certificates.html', context)
 
@@ -623,7 +623,7 @@ class EventDetailAdminView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         event = self.get_object()
-        context['registrations'] = EventRegistration.objects.filter(event=event).select_related('user__clientprofile').order_by('-registration_date')
+        context['registrations'] = EventRegistration.objects.filter(event=event).select_related('user__client_profile').order_by('-registration_date')
         context['questions'] = EventQuestion.objects.filter(event=event).prefetch_related('options').order_by('order')
         if event.certification_type:
             context['attendee_form'] = EventAttendeeSelectionForm(event_id=event.pk)
@@ -794,7 +794,7 @@ class UserCancelEventRegistrationView(View):
 @employee_required
 def manage_event_registrations(request, event_pk):
     event = get_object_or_404(Event, pk=event_pk)
-    registrations = EventRegistration.objects.filter(event=event).select_related('user__clientprofile').order_by('user__email')
+    registrations = EventRegistration.objects.filter(event=event).select_related('user__client_profile').order_by('user__email')
     if request.method == 'POST':
         for reg_id_key, status_value in request.POST.items():
             if reg_id_key.startswith('status_'):
@@ -822,7 +822,7 @@ def issue_event_certificates(request, event_pk):
     if not event.certification_type:
         messages.error(request, "This event does not have a certification type assigned. Certificates cannot be issued.")
         return redirect('event_detail_admin', pk=event.pk)
-    eligible_registrations_qs = EventRegistration.objects.filter(event=event, status='ATTENDED').select_related('user', 'user__clientprofile')
+    eligible_registrations_qs = EventRegistration.objects.filter(event=event, status='ATTENDED').select_related('user', 'user__client_profile')
     if request.method == 'POST':
         form = EventAttendeeSelectionForm(request.POST, event_id=event.pk)
         form.fields['attendees'].queryset = eligible_registrations_qs

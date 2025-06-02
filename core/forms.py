@@ -94,7 +94,7 @@ class TrainingCourseForm(forms.ModelForm):
 class IssueCertificateForm(forms.Form):
     client = forms.ModelChoiceField(
         queryset=CustomUser.objects.filter(is_employee=False, is_verified=True).select_related(
-            'clientprofile').order_by('first_name', 'last_name'), # Assuming 'clientprofile' is the related_name from CustomUser to ClientProfile
+            'client_profile').order_by('first_name', 'last_name'), # Assuming 'clientprofile' is the related_name from CustomUser to ClientProfile
         widget=forms.Select(attrs={'class': 'form-control select2', 'required': True}),
         label="Client",
         empty_label="-- Select Client --"
